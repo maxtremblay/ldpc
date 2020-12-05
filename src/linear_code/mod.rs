@@ -1,5 +1,7 @@
+use crate::noise_model::NoiseModel;
+use crate::{SparseBinMat, SparseBinSlice, SparseBinVec};
 use itertools::Itertools;
-pub use sparse_bin_mat::{SparseBinMat, SparseBinSlice, SparseBinVec};
+use rand::Rng;
 
 mod random;
 pub use self::random::RandomRegularCode;
@@ -38,7 +40,7 @@ pub use self::random::RandomRegularCode;
 /// generator matrix.
 /// However, since there is freedom in the choice of
 /// parity check matrix and generator matrix for the same code,
-/// use [`has_the_same_codespace_as`](LinearCode::has_the_same_codespace) method
+/// use [`has_the_same_codespace_as`](LinearCode::has_the_same_codespace_as) method
 /// if you want to know if 2 codes define the same codespace even
 /// if they may have different parity check matrix or generator matrix.
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
@@ -108,8 +110,7 @@ impl LinearCode {
     ///
     /// assert_eq!(code.block_size(), 20);
     /// assert_eq!(code.number_of_checks(), 15);
-    /// assert_eq!(code.bit_degree(), 3);
-    /// assert_eq!(code.check_degree(), 4);
+    /// assert_eq!(code.parity_check_matrix().number_of_ones(), 60);
     /// ```
     pub fn random_regular_code() -> RandomRegularCode {
         RandomRegularCode::default()
@@ -262,5 +263,33 @@ impl LinearCode {
     /// ```
     pub fn has_codeword(&self, operator: &SparseBinSlice) -> bool {
         self.syndrome_of(operator).is_zero()
+    }
+
+    /// Generates a random error with the given noise model.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use ldpc::{SparseBinMat, LinearCode};
+    /// use ldpc::noise_model::BinarySymmetricChannel;
+    /// use rand::thread_rng;
+    ///
+    /// let parity_check_matrix = SparseBinMat::new(
+    ///     7,
+    ///     vec![vec![0, 1, 2, 4], vec![0, 1, 3, 5], vec![0, 2, 3, 6]]
+    /// );
+    /// let code = LinearCode::from_parity_check_matrix(parity_check_matrix);
+    ///
+    /// let noise = BinarySymmetricChannel::with_probability(0.25);
+    /// let error = code.random_error(&noise, &mut thread_rng());
+    ///
+    /// assert_eq!(error.len(), 7);
+    /// ```
+    pub fn random_error<N, R>(&self, noise_model: &N, rng: &mut R) -> SparseBinVec
+    where
+        N: NoiseModel<Error = SparseBinVec>,
+        R: Rng,
+    {
+        noise_model.sample_error_of_length(self.block_size(), rng)
     }
 }
