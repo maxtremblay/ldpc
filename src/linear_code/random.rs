@@ -49,6 +49,9 @@ impl RandomRegularCode {
 
     /// Samples a random code with the given random number generator.
     pub fn sample_with<R: Rng>(&self, rng: &mut R) -> LinearCode {
+        if self.block_size * self.bit_degree != self.number_of_checks * self.check_degree {
+            panic!("block size * bit degree is different then number of checks * check degree");
+        }
         let graph = Sampler::builder()
             .number_of_variables(self.block_size)
             .number_of_constraints(self.number_of_checks)
