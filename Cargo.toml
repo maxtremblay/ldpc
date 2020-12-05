@@ -3,6 +3,11 @@ name = "ldpc"
 version = "0.1.0"
 authors = ["maxtremblay <matrem@protonmail.com>"]
 edition = "2018"
+description = "A toolbox for classical (and soon quantum) LDPC codes."
+repository = "https://github.com/maxtremblay/ldpc"
+license = "MIT OR Apache-2.0"
+keywords = ["error-correction", "quantum", "ldpc"]
+categories = ["algorithms", "data-structures"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
