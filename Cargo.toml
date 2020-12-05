@@ -1,6 +1,6 @@
 [package]
 name = "ldpc"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["maxtremblay <matrem@protonmail.com>"]
 edition = "2018"
 description = "A toolbox for classical (and soon quantum) LDPC codes."
@@ -15,4 +15,4 @@ categories = ["algorithms", "data-structures"]
 bigs = "0.1.0"
 itertools = "0.9.0"
 rand = "0.7.3"
-sparse-bin-mat = "0.2.2"
+sparse-bin-mat = "0.2.3"
