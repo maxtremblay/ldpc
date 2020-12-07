@@ -7,7 +7,8 @@ fn main() {
         .number_of_checks(3)
         .bit_degree(3)
         .check_degree(4)
-        .sample_with(&mut thread_rng());
+        .sample_with(&mut thread_rng())
+        .unwrap();
     println!("{:?}", code);
     println!("Block size: {}", code.block_size());
     println!("Dimension: {}", code.dimension());

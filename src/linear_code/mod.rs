@@ -2,6 +2,7 @@ use crate::noise_model::NoiseModel;
 use crate::{SparseBinMat, SparseBinSlice, SparseBinVec};
 use itertools::Itertools;
 use rand::Rng;
+use sparse_bin_mat::error::MatVecIncompatibleDimensions;
 
 mod random;
 pub use self::random::RandomRegularCode;
@@ -95,6 +96,10 @@ impl LinearCode {
     /// Returns a builder for random LDPC codes with
     /// regular parity check matrix.
     ///
+    /// The [`sample_with`](RandomRegularCode::sample_with) method returns
+    /// an error if the block size times the bit's degree is not equal
+    /// to the number of checks times the bit check's degree.
+    ///
     /// # Example
     ///
     /// ```
@@ -106,7 +111,8 @@ impl LinearCode {
     ///     .number_of_checks(15)
     ///     .bit_degree(3)
     ///     .check_degree(4)
-    ///     .sample_with(&mut thread_rng());
+    ///     .sample_with(&mut thread_rng())
+    ///     .unwrap(); // 20 * 3 == 15 * 4
     ///
     /// assert_eq!(code.block_size(), 20);
     /// assert_eq!(code.number_of_checks(), 15);
@@ -151,7 +157,8 @@ impl LinearCode {
     /// assert!(hamming_code.has_the_same_codespace_as(&other_hamming_code));
     /// ```
     pub fn has_the_same_codespace_as(&self, other: &Self) -> bool {
-        (&self.parity_check_matrix * &other.generator_matrix.transposed()).is_zero()
+        self.block_size() == other.block_size()
+            && (&self.parity_check_matrix * &other.generator_matrix.transposed()).is_zero()
     }
 
     /// Returns the number of bits in the code.
@@ -215,7 +222,9 @@ impl LinearCode {
             .min()
     }
 
-    /// Returns the product of the parity check matrix with the given error.
+    /// Returns the product of the parity check matrix with the given message
+    /// or returns an error if the message have a different length then code
+    /// block size.
     ///
     /// # Example
     ///
@@ -227,23 +236,20 @@ impl LinearCode {
     /// );
     /// let hamming_code = LinearCode::from_parity_check_matrix(parity_check_matrix);
     ///
-    /// let error = SparseBinVec::new(7, vec![0, 2, 4]);
+    /// let message = SparseBinVec::new(7, vec![0, 2, 4]);
     /// let syndrome = SparseBinVec::new(3, vec![0, 1]);
     ///
-    /// assert_eq!(hamming_code.syndrome_of(&error.as_view()), syndrome);
+    /// assert_eq!(hamming_code.syndrome_of(&message.as_view()), Ok(syndrome));
     /// ```
-    pub fn syndrome_of(&self, error: &SparseBinSlice) -> SparseBinVec {
-        if error.len() != self.block_size() {
-            panic!(
-                "error of length {} is invalid for code of size {}",
-                error.len(),
-                self.block_size()
-            );
-        }
-        self.parity_check_matrix.dot_with(error)
+    pub fn syndrome_of(
+        &self,
+        message: &SparseBinSlice,
+    ) -> Result<SparseBinVec, MatVecIncompatibleDimensions> {
+        self.parity_check_matrix.dot_with_vector(message)
     }
 
-    /// Checks if an operator has zero syndrome.
+    /// Checks if a message has zero syndrome or returns an error
+    /// if the message have a different length then code block size.
     ///
     /// # Example
     ///
@@ -258,11 +264,15 @@ impl LinearCode {
     /// let error = SparseBinVec::new(7, vec![0, 2, 4]);
     /// let codeword = SparseBinVec::new(7, vec![2, 3, 4, 5]);
     ///
-    /// assert_eq!(hamming_code.has_codeword(&error.as_view()), false);
-    /// assert_eq!(hamming_code.has_codeword(&codeword.as_view()), true);
+    /// assert_eq!(hamming_code.has_codeword(&error.as_view()), Ok(false));
+    /// assert_eq!(hamming_code.has_codeword(&codeword.as_view()), Ok(true));
     /// ```
-    pub fn has_codeword(&self, operator: &SparseBinSlice) -> bool {
-        self.syndrome_of(operator).is_zero()
+    pub fn has_codeword(
+        &self,
+        operator: &SparseBinSlice,
+    ) -> Result<bool, MatVecIncompatibleDimensions> {
+        self.syndrome_of(operator)
+            .map(|syndrome| syndrome.is_zero())
     }
 
     /// Generates a random error with the given noise model.
