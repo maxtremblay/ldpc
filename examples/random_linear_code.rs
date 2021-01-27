@@ -1,3 +1,4 @@
+use ldpc::noise_model::BinarySymmetricChannel;
 use ldpc::LinearCode;
 use rand::thread_rng;
 
@@ -9,8 +10,8 @@ fn main() {
         .check_degree(4)
         .sample_with(&mut thread_rng())
         .unwrap();
-    println!("{:?}", code);
-    println!("Block size: {}", code.block_size());
-    println!("Dimension: {}", code.dimension());
-    println!("Minimal distance: {:?}", code.minimal_distance());
+
+    let noise = BinarySymmetricChannel::with_probability(0.2);
+    let error = code.random_error(&noise, &mut thread_rng());
+    println!("{}", error);
 }
