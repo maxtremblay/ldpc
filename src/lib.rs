@@ -10,7 +10,7 @@
 //!
 //! ```
 //! use ldpc::LinearCode;
-//! use ldpc::noise_model::BinarySymmetricChannel;
+//! use ldpc::noise_model::{Probability, BinarySymmetricChannel};
 //! use rand::thread_rng;
 //!
 //! // This sample a random regular LDPC code.
@@ -23,14 +23,16 @@
 //!     .sample_with(&mut thread_rng())
 //!     .unwrap();
 //!
-//! let noise = BinarySymmetricChannel::with_probability(0.1);
+//! let noise = BinarySymmetricChannel::with_probability(Probability::new(0.1));
 //!
 //! // The error is a sparse binary vector where each 1 represent a bit flip.
 //! let error = code.random_error(&noise, &mut thread_rng());
 //! ```
 
+pub mod decoders;
+
 mod linear_code;
-pub use crate::linear_code::{LinearCode, RandomRegularCode};
+pub use crate::linear_code::{Edge, Edges, LinearCode, RandomRegularCode};
 
 pub mod noise_model;
 

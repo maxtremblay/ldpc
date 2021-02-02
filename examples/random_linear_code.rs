@@ -1,4 +1,4 @@
-use ldpc::noise_model::BinarySymmetricChannel;
+use ldpc::noise_model::{BinarySymmetricChannel, Probability};
 use ldpc::LinearCode;
 use rand::thread_rng;
 
@@ -11,7 +11,7 @@ fn main() {
         .sample_with(&mut thread_rng())
         .unwrap();
 
-    let noise = BinarySymmetricChannel::with_probability(0.2);
+    let noise = BinarySymmetricChannel::with_probability(Probability::new(0.2));
     let error = code.random_error(&noise, &mut thread_rng());
     println!("{}", error);
 }

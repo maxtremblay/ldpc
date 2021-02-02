@@ -21,14 +21,22 @@ pub trait NoiseModel {
     fn sample_error_of_length<R: Rng>(&self, length: usize, rng: &mut R) -> Self::Error;
 }
 
-/// An error when a probability is not between 0.0 and 1.1 inclusively.
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub struct ProbabilityError(f64);
+pub struct Probability(f64);
 
-impl std::fmt::Display for ProbabilityError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{} is not between 0.0 and 1.0", self.0)
+impl Probability {
+    pub fn new(probability: f64) -> Self {
+        Self::try_new(probability).expect("probability is not between 0 and 1")
+    }
+
+    pub fn try_new(probability: f64) -> Option<Self> {
+        if 0.0 <= probability && probability <= 1.0 {
+            Some(Self(probability))
+        } else {
+            None
+        }
+    }
+
+    pub fn value(&self) -> f64 {
+        self.0
     }
 }
-
-impl std::error::Error for ProbabilityError {}

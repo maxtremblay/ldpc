@@ -1,4 +1,4 @@
-use super::{NoiseModel, ProbabilityError};
+use super::{NoiseModel, Probability};
 use crate::SparseBinVec;
 use itertools::Itertools;
 use rand::distributions::{Bernoulli, Distribution};
@@ -14,26 +14,11 @@ pub struct BinarySymmetricChannel {
 }
 
 impl BinarySymmetricChannel {
-    /// Creates a new binary symmetric channel with the given error probability
-    /// or returns an error if the probability is not between 0 and 1.
-    pub fn try_with_probability(probability: f64) -> Result<Self, ProbabilityError> {
-        Bernoulli::new(probability)
-            .map(|distribution| Self { distribution })
-            .map_err(|_| ProbabilityError(probability))
-    }
-
     /// Creates a new binary symmetric channel with the given error probability.
-    ///
-    /// # Panic
-    ///
-    /// Panics if the probability is not between 0 and 1.
-    pub fn with_probability(probability: f64) -> Self {
-        let channel = Self::try_with_probability(probability);
-        if let Ok(channel) = channel {
-            channel
-        } else {
-            panic!("probability {} is not between 0 and 1", probability);
-        }
+    pub fn with_probability(probability: Probability) -> Self {
+        Bernoulli::new(probability.value())
+            .map(|distribution| Self { distribution })
+            .unwrap()
     }
 }
 
