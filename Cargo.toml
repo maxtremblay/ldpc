@@ -1,6 +1,6 @@
 [package]
 name = "ldpc"
-version = "0.2.2"
+version = "0.3.0"
 authors = ["maxtremblay <matrem@protonmail.com>"]
 edition = "2018"
 description = "A toolbox for classical (and soon quantum) LDPC codes."
