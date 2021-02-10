@@ -1,8 +1,9 @@
 use crate::{LinearCode, SparseBinVec};
 use sparse_bin_mat::SparseBinVecBase;
 use std::borrow::Borrow;
+use std::fmt;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct FlipDecoder<Code> {
     code: Code,
 }
@@ -43,6 +44,12 @@ where
 
     fn code(&self) -> &LinearCode {
         self.code.borrow()
+    }
+}
+
+impl<T> fmt::Display for FlipDecoder<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Flip decoder")
     }
 }
 

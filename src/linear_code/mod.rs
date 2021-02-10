@@ -1,6 +1,7 @@
 use crate::noise_model::NoiseModel;
 use itertools::Itertools;
 use rand::Rng;
+use serde::{Deserialize, Serialize};
 use sparse_bin_mat::{SparseBinMat, SparseBinSlice, SparseBinVec, SparseBinVecBase};
 
 mod edges;
@@ -46,7 +47,7 @@ pub use self::random::RandomRegularCode;
 /// use [`has_the_same_codespace_as`](LinearCode::has_the_same_codespace_as) method
 /// if you want to know if 2 codes define the same codespace even
 /// if they may have different parity check matrix or generator matrix.
-#[derive(Debug, PartialEq, Eq, Clone, Hash)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash, Serialize, Deserialize)]
 pub struct LinearCode {
     parity_check_matrix: SparseBinMat,
     generator_matrix: SparseBinMat,
@@ -418,5 +419,10 @@ impl LinearCode {
         R: Rng,
     {
         noise_model.sample_error_of_length(self.block_size(), rng)
+    }
+
+    /// Returns the code as a json string.
+    pub fn as_json(&self) -> serde_json::Result<String> {
+        serde_json::to_string(self)
     }
 }
