@@ -5,6 +5,7 @@ use rand::Rng;
 use std::error::Error;
 use std::fmt;
 
+/// A random regular ldpc code sampler.
 ///
 /// See [`LinearCode::random_regular_code`](LinearCode::random_regular_code).
 #[derive(Debug, Default, PartialEq, Eq, Clone, Copy, Hash)]
