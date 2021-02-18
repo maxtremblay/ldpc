@@ -3,6 +3,7 @@ use crate::SparseBinVec;
 use itertools::Itertools;
 use rand::distributions::{Bernoulli, Distribution};
 use rand::Rng;
+use serde::{Deserialize, Serialize};
 use std::fmt;
 
 /// A binary symmetric channel flips at bit with
@@ -10,7 +11,7 @@ use std::fmt;
 ///
 /// This noise model returns a `SparseBinVec` where
 /// the positions of each 1s are associated to bit flips.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct BinarySymmetricChannel {
     distribution: Bernoulli,
     probability: f64,
