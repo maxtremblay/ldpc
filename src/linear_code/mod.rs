@@ -141,6 +141,14 @@ impl LinearCode {
         Self::from_parity_check_matrix(parity_check_matrix)
     }
 
+    /// Returns a code of length 0 encoding 0 bits and without checks.
+    ///
+    /// This is mostly useful as a place holder.
+    pub fn empty() -> Self {
+        let matrix = SparseBinMat::empty();
+        Self::from_parity_check_matrix(matrix)
+    }
+
     /// Returns a builder for random LDPC codes with
     /// regular parity check matrix.
     ///
