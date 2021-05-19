@@ -4,7 +4,7 @@ use rand::thread_rng;
 
 fn main() {
     let code = LinearCode::random_regular_code()
-        .block_size(4)
+        .number_of_bits(4)
         .number_of_checks(3)
         .bit_degree(3)
         .check_degree(4)

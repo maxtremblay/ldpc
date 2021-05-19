@@ -14,7 +14,7 @@
 //! // This sample a random regular LDPC code.
 //! // It may returns an error, thus the unwrap.
 //! let code = LinearCode::random_regular_code()
-//!     .block_size(40)
+//!     .number_of_bits(40)
 //!     .number_of_checks(20)
 //!     .bit_degree(3)
 //!     .check_degree(6)
