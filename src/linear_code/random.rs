@@ -61,7 +61,7 @@ impl RandomRegularCode {
             .constraint_degree(self.check_degree)
             .build()
             .map(|sampler| convert_graph_into_code(sampler.sample_with(rng)))
-            .map_err(|error| SamplingError::from_error(error))
+            .map_err(SamplingError::from_error)
     }
 }
 

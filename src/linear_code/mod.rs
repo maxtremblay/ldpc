@@ -73,8 +73,8 @@ impl LinearCode {
         let generator_matrix = parity_check_matrix.nullspace();
         let bit_adjacencies = parity_check_matrix.transposed();
         Self {
-            generator_matrix,
             parity_check_matrix,
+            generator_matrix,
             bit_adjacencies,
         }
     }
@@ -333,7 +333,7 @@ impl LinearCode {
     /// assert_eq!(edges.next(), Some(Edge { bit: 2, check: 2}));
     /// assert_eq!(edges.next(), None);
     /// ```
-    pub fn edges<'a>(&'a self) -> Edges<'a> {
+    pub fn edges(&self) -> Edges {
         Edges::new(self)
     }
 

@@ -29,7 +29,7 @@ impl Probability {
     }
 
     pub fn try_new(probability: f64) -> Option<Self> {
-        if 0.0 <= probability && probability <= 1.0 {
+        if (0.0..=1.0).contains(&probability) {
             Some(Self(probability))
         } else {
             None
