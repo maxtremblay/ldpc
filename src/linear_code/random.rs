@@ -10,18 +10,18 @@ use std::fmt;
 /// See [`LinearCode::random_regular_code`](LinearCode::random_regular_code).
 #[derive(Debug, Default, PartialEq, Eq, Clone, Copy, Hash)]
 pub struct RandomRegularCode {
-    block_size: usize,
+    number_of_bits: usize,
     number_of_checks: usize,
     bit_degree: usize,
     check_degree: usize,
 }
 
 impl RandomRegularCode {
-    /// Fixes the block size of the code.
+    /// Fixes the length of the code.
     ///
     /// Default is 0.
-    pub fn block_size(&mut self, block_size: usize) -> &mut Self {
-        self.block_size = block_size;
+    pub fn number_of_bits(&mut self, number_of_bits: usize) -> &mut Self {
+        self.number_of_bits = number_of_bits;
         self
     }
 
@@ -51,11 +51,11 @@ impl RandomRegularCode {
 
     /// Samples a random code with the given random number generator
     /// or returns an error if the `n * b != m * c` where
-    /// `n` is the block size, `b` the bit's degree, `m` the number of checks
+    /// `n` is the number of bits, `b` the bit's degree, `m` the number of checks
     /// and `c` the check's degree.
     pub fn sample_with<R: Rng>(&self, rng: &mut R) -> Result<LinearCode, SamplingError> {
         Sampler::builder()
-            .number_of_variables(self.block_size)
+            .number_of_variables(self.number_of_bits)
             .number_of_constraints(self.number_of_checks)
             .variable_degree(self.bit_degree)
             .constraint_degree(self.check_degree)
@@ -77,7 +77,7 @@ fn convert_graph_into_code(graph: Graph) -> LinearCode {
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 pub struct SamplingError {
-    block_size: usize,
+    number_of_bits: usize,
     number_of_checks: usize,
     bit_degree: usize,
     check_degree: usize,
@@ -86,7 +86,7 @@ pub struct SamplingError {
 impl SamplingError {
     fn from_error(error: InvalidParameters) -> Self {
         Self {
-            block_size: error.number_of_variables,
+            number_of_bits: error.number_of_variables,
             number_of_checks: error.number_of_constraints,
             bit_degree: error.variable_degree,
             check_degree: error.constraint_degree,
@@ -99,7 +99,7 @@ impl fmt::Display for SamplingError {
         write!(
             f,
             "can't generate a regular code with {} bits of degree {} and {} checks of degree {}",
-            self.block_size, self.bit_degree, self.number_of_checks, self.check_degree
+            self.number_of_bits, self.bit_degree, self.number_of_checks, self.check_degree
         )
     }
 }

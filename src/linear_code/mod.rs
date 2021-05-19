@@ -65,7 +65,7 @@ impl LinearCode {
     /// let matrix = SparseBinMat::new(3, vec![vec![0, 1], vec![1, 2]]);
     /// let code = LinearCode::from_parity_check_matrix(matrix);
     ///
-    /// assert_eq!(code.block_size(), 3);
+    /// assert_eq!(code.len(), 3);
     /// assert_eq!(code.dimension(), 1);
     /// assert_eq!(code.minimal_distance(), Some(3));
     /// ```
@@ -89,7 +89,7 @@ impl LinearCode {
     /// let matrix = SparseBinMat::new(3, vec![vec![0, 1, 2]]);
     /// let code = LinearCode::from_generator_matrix(matrix);
     ///
-    /// assert_eq!(code.block_size(), 3);
+    /// assert_eq!(code.len(), 3);
     /// assert_eq!(code.dimension(), 1);
     /// assert_eq!(code.minimal_distance(), Some(3));
     /// ```
@@ -103,7 +103,7 @@ impl LinearCode {
         }
     }
 
-    /// Returns a repetition code with the given block size.
+    /// Returns a repetition code with the given length.
     ///
     /// # Example
     ///
@@ -114,8 +114,8 @@ impl LinearCode {
     ///
     /// assert!(code.has_same_codespace_as(&LinearCode::repetition_code(3)));
     /// ```
-    pub fn repetition_code(block_size: usize) -> Self {
-        let generator_matrix = SparseBinMat::new(block_size, vec![(0..block_size).collect()]);
+    pub fn repetition_code(length: usize) -> Self {
+        let generator_matrix = SparseBinMat::new(length, vec![(0..length).collect()]);
         Self::from_generator_matrix(generator_matrix)
     }
 
@@ -153,7 +153,7 @@ impl LinearCode {
     /// regular parity check matrix.
     ///
     /// The [`sample_with`](RandomRegularCode::sample_with) method returns
-    /// an error if the block size times the bit's degree is not equal
+    /// an error if the number of bits times the bit's degree is not equal
     /// to the number of checks times the bit check's degree.
     ///
     /// # Example
@@ -163,14 +163,14 @@ impl LinearCode {
     /// use rand::thread_rng;
     ///
     /// let code = LinearCode::random_regular_code()
-    ///     .block_size(20)
+    ///     .number_of_bits(20)
     ///     .number_of_checks(15)
     ///     .bit_degree(3)
     ///     .check_degree(4)
     ///     .sample_with(&mut thread_rng())
     ///     .unwrap(); // 20 * 3 == 15 * 4
     ///
-    /// assert_eq!(code.block_size(), 20);
+    /// assert_eq!(code.len(), 20);
     /// assert_eq!(code.number_of_checks(), 15);
     /// assert_eq!(code.parity_check_matrix().number_of_ones(), 60);
     /// ```
@@ -243,12 +243,12 @@ impl LinearCode {
     /// assert!(hamming_code.has_same_codespace_as(&other_hamming_code));
     /// ```
     pub fn has_same_codespace_as(&self, other: &Self) -> bool {
-        self.block_size() == other.block_size()
+        self.len() == other.len()
             && (&self.parity_check_matrix * &other.generator_matrix.transposed()).is_zero()
     }
 
     /// Returns the number of bits in the code.
-    pub fn block_size(&self) -> usize {
+    pub fn len(&self) -> usize {
         self.parity_check_matrix.number_of_columns()
     }
 
@@ -295,7 +295,7 @@ impl LinearCode {
             .filter_map(|generators| {
                 let weight = generators
                     .into_iter()
-                    .fold(SparseBinVec::zeros(self.block_size()), |sum, generator| {
+                    .fold(SparseBinVec::zeros(self.len()), |sum, generator| {
                         &sum + &generator
                     })
                     .weight();
@@ -357,16 +357,16 @@ impl LinearCode {
     ///
     /// # Panic
     ///
-    /// Panics if the message have a different length then code block size.
+    /// Panics if the message have a different length then the code.
     pub fn syndrome_of<T>(&self, message: &SparseBinVecBase<T>) -> SparseBinVec
     where
         T: std::ops::Deref<Target = [usize]>,
     {
-        if message.len() != self.block_size() {
+        if message.len() != self.len() {
             panic!(
-                "message of length {} is invalid for code with block size {}",
+                "message of length {} is invalid for code with length {}",
                 message.len(),
-                self.block_size()
+                self.len()
             );
         }
         &self.parity_check_matrix * message
@@ -393,7 +393,7 @@ impl LinearCode {
     ///
     /// # Panic
     ///
-    /// Panics if the message have a different length then code block size.
+    /// Panics if the message have a different length then code.
     pub fn has_codeword<T>(&self, operator: &SparseBinVecBase<T>) -> bool
     where
         T: std::ops::Deref<Target = [usize]>,
@@ -426,7 +426,7 @@ impl LinearCode {
         N: NoiseModel<Error = SparseBinVec>,
         R: Rng,
     {
-        noise_model.sample_error_of_length(self.block_size(), rng)
+        noise_model.sample_error_of_length(self.len(), rng)
     }
 
     /// Returns the code as a json string.

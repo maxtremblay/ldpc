@@ -4,9 +4,7 @@
 //! only [classical linear codes](`LinearCode`) are implemented.
 //!
 //! There is also a generic implementation of [noise model](noise_model)
-//! that can be used to generate random error for codes.
-//!
-//! # Example
+//! that can be used to generate random error for codes.  # Example
 //!
 //! ```
 //! use ldpc::LinearCode;
@@ -37,3 +35,5 @@ pub use crate::linear_code::{Edge, Edges, LinearCode, RandomRegularCode};
 pub mod noise_model;
 
 pub use sparse_bin_mat::{SparseBinMat, SparseBinSlice, SparseBinVec};
+
+pub mod quantum;

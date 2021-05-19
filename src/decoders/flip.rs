@@ -25,7 +25,7 @@ where
         let mut syndrome = self.code().syndrome_of(message);
         let mut output = SparseBinVec::new(message.len(), message.as_slice().to_vec());
         while let Some(bit) = self.find_flippable(&syndrome) {
-            let update = SparseBinVec::new(self.code().block_size(), vec![bit]);
+            let update = SparseBinVec::new(self.code().len(), vec![bit]);
             syndrome = &syndrome + &self.code().syndrome_of(&update);
             output = &output + &update;
         }
