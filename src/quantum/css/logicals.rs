@@ -2,7 +2,7 @@ use crate::LinearCode;
 use sparse_bin_mat::{SparseBinMat, SparseBinVec};
 
 // This implement a variation of the method
-// introduced in of https://arxiv.org/abs/0903.5256
+// introduced in https://arxiv.org/abs/0903.5256
 // to compute logical operator generators of a CSS
 // code from the linear codes.
 pub(super) fn from_linear_codes(
