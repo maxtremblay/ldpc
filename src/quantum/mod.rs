@@ -1,2 +1,2 @@
 mod css;
-pub use css::{CssCode, CssSyndrome};
+pub use css::{CssCode, CssSyndrome, CssError};
