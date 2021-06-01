@@ -1,5 +1,7 @@
 use crate::classical::LinearCode;
+use crate::noise_model::NoiseModel;
 use pauli::PauliOperator;
+use rand::Rng;
 use sparse_bin_mat::{SparseBinMat, SparseBinVec};
 
 mod logicals;
@@ -329,6 +331,30 @@ impl CssCode {
                     vec![Z; logical.weight()],
                 )
             }))
+    }
+
+    /// Generates a random error with the given noise model.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use ldpc::quantum::CssCode;
+    /// use ldpc::noise_model::{DepolarizingNoise, Probability};
+    /// use rand::thread_rng;
+    ///
+    /// let code = CssCode::steane_code();
+    ///
+    /// let noise = DepolarizingNoise::with_probability(Probability::new(0.25));
+    /// let error = code.random_error(&noise, &mut thread_rng());
+    ///
+    /// assert_eq!(error.len(), 7);
+    /// ```
+    pub fn random_error<N, R>(&self, noise_model: &N, rng: &mut R) -> PauliOperator
+    where
+        N: NoiseModel<Error = PauliOperator>,
+        R: Rng,
+    {
+        noise_model.sample_error_of_length(self.len(), rng)
     }
 }
 

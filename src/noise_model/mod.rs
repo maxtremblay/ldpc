@@ -13,6 +13,9 @@ use rand::Rng;
 mod binary_symmetric_channel;
 pub use binary_symmetric_channel::BinarySymmetricChannel;
 
+mod depolarizing;
+pub use depolarizing::DepolarizingNoise;
+
 pub trait NoiseModel {
     /// The type of the generated errors.
     type Error;
