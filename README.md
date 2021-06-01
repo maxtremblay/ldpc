@@ -1,3 +1,3 @@
 # LDPC
 
-A toolbox for classical quantum LDPC codes.
+A toolbox for classical and quantum LDPC codes.
