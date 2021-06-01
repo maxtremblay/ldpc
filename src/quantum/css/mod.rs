@@ -144,7 +144,13 @@ impl CssCode {
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
-    /// Returns the number of x stabilizer generators.  pub fn num_x_stabs(&self) -> usize { self.x_stabilizers.number_of_rows() } Returns the number of z stabilizer generators.
+
+    /// Returns the number of x stabilizer generators.  
+    pub fn num_x_stabs(&self) -> usize {
+        self.x_stabilizers.number_of_rows()
+    }
+
+    /// Returns the number of z stabilizer generators.
     pub fn num_z_stabs(&self) -> usize {
         self.z_stabilizers.number_of_rows()
     }
