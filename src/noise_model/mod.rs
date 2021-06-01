@@ -13,6 +13,9 @@ use rand::Rng;
 mod binary_symmetric_channel;
 pub use binary_symmetric_channel::BinarySymmetricChannel;
 
+mod depolarizing;
+pub use depolarizing::DepolarizingNoise;
+
 pub trait NoiseModel {
     /// The type of the generated errors.
     type Error;
@@ -29,7 +32,7 @@ impl Probability {
     }
 
     pub fn try_new(probability: f64) -> Option<Self> {
-        if 0.0 <= probability && probability <= 1.0 {
+        if (0.0..=1.0).contains(&probability) {
             Some(Self(probability))
         } else {
             None
