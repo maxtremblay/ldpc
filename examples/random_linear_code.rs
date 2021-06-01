@@ -1,11 +1,11 @@
 use ldpc::noise_model::{BinarySymmetricChannel, Probability};
-use ldpc::LinearCode;
+use ldpc::classical::LinearCode;
 use rand::thread_rng;
 
 fn main() {
     let code = LinearCode::random_regular_code()
-        .number_of_bits(4)
-        .number_of_checks(3)
+        .num_bits(4)
+        .num_checks(3)
         .bit_degree(3)
         .check_degree(4)
         .sample_with(&mut thread_rng())

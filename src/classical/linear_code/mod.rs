@@ -21,7 +21,8 @@ pub use self::random::RandomRegularCode;
 /// This is example shows 2 way to define the Hamming code.
 ///
 /// ```
-/// # use ldpc::{LinearCode, SparseBinMat};
+/// # use ldpc::classical::LinearCode;
+/// use sparse_bin_mat::SparseBinMat;
 /// let parity_check_matrix = SparseBinMat::new(
 ///     7,
 ///     vec![vec![0, 1, 2, 4], vec![0, 1, 3, 5], vec![0, 2, 3, 6]]
@@ -34,7 +35,7 @@ pub use self::random::RandomRegularCode;
 /// let code_from_parity = LinearCode::from_parity_check_matrix(parity_check_matrix);
 /// let code_from_generator = LinearCode::from_generator_matrix(generator_matrix);
 ///
-/// assert!(code_from_parity.has_same_codespace_as(&code_from_generator));
+/// assert!(code_from_parity.has_same_codespace(&code_from_generator));
 /// ```
 ///
 /// # Comparison
@@ -44,7 +45,7 @@ pub use self::random::RandomRegularCode;
 /// generator matrix.
 /// However, since there is freedom in the choice of
 /// parity check matrix and generator matrix for the same code,
-/// use [`has_the_same_codespace_as`](LinearCode::has_the_same_codespace_as) method
+/// use [`has_the_same_codespace`](LinearCode::has_the_same_codespace) method
 /// if you want to know if 2 codes define the same codespace even
 /// if they may have different parity check matrix or generator matrix.
 #[derive(Debug, PartialEq, Eq, Clone, Hash, Serialize, Deserialize)]
@@ -60,7 +61,9 @@ impl LinearCode {
     /// # Example
     ///
     /// ```
-    /// # use ldpc::{LinearCode, SparseBinMat};
+    /// # use ldpc::classical::LinearCode;
+    /// use sparse_bin_mat::SparseBinMat;
+    ///
     /// // 3 bits repetition code.
     /// let matrix = SparseBinMat::new(3, vec![vec![0, 1], vec![1, 2]]);
     /// let code = LinearCode::from_parity_check_matrix(matrix);
@@ -84,7 +87,9 @@ impl LinearCode {
     /// # Example
     ///
     /// ```
-    /// # use ldpc::{LinearCode, SparseBinMat};
+    /// # use ldpc::classical::LinearCode;
+    /// use sparse_bin_mat::SparseBinMat;
+    ///
     /// // 3 bits repetition code.
     /// let matrix = SparseBinMat::new(3, vec![vec![0, 1, 2]]);
     /// let code = LinearCode::from_generator_matrix(matrix);
@@ -108,11 +113,13 @@ impl LinearCode {
     /// # Example
     ///
     /// ```
-    /// # use ldpc::{LinearCode, SparseBinMat};
+    /// # use ldpc::classical::LinearCode;
+    /// use sparse_bin_mat::SparseBinMat;
+    ///
     /// let matrix = SparseBinMat::new(3, vec![vec![0, 1], vec![1, 2]]);
     /// let code = LinearCode::from_parity_check_matrix(matrix);
     ///
-    /// assert!(code.has_same_codespace_as(&LinearCode::repetition_code(3)));
+    /// assert!(code.has_same_codespace(&LinearCode::repetition_code(3)));
     /// ```
     pub fn repetition_code(length: usize) -> Self {
         let checks = (0..length-1).map(|c| vec![c, c+1]).collect();
@@ -125,14 +132,16 @@ impl LinearCode {
     /// # Example
     ///
     /// ```
-    /// # use ldpc::{LinearCode, SparseBinMat};
+    /// # use ldpc::classical::LinearCode;
+    /// use sparse_bin_mat::SparseBinMat;
+    ///
     /// let matrix = SparseBinMat::new(
     ///     7,
     ///     vec![vec![3, 4, 5, 6], vec![1, 2, 5, 6], vec![0, 2, 4, 6]],
     /// );
     /// let code = LinearCode::from_parity_check_matrix(matrix);
     ///
-    /// assert!(code.has_same_codespace_as(&LinearCode::hamming_code()));
+    /// assert!(code.has_same_codespace(&LinearCode::hamming_code()));
     /// ```
     pub fn hamming_code() -> Self {
         let parity_check_matrix = SparseBinMat::new(
@@ -160,19 +169,19 @@ impl LinearCode {
     /// # Example
     ///
     /// ```
-    /// # use ldpc::LinearCode;
+    /// # use ldpc::classical::LinearCode;
     /// use rand::thread_rng;
     ///
     /// let code = LinearCode::random_regular_code()
-    ///     .number_of_bits(20)
-    ///     .number_of_checks(15)
+    ///     .num_bits(20)
+    ///     .num_checks(15)
     ///     .bit_degree(3)
     ///     .check_degree(4)
     ///     .sample_with(&mut thread_rng())
     ///     .unwrap(); // 20 * 3 == 15 * 4
     ///
     /// assert_eq!(code.len(), 20);
-    /// assert_eq!(code.number_of_checks(), 15);
+    /// assert_eq!(code.num_checks(), 15);
     /// assert_eq!(code.parity_check_matrix().number_of_ones(), 60);
     /// ```
     pub fn random_regular_code() -> RandomRegularCode {
@@ -226,7 +235,9 @@ impl LinearCode {
     /// # Example
     ///
     /// ```
-    /// # use ldpc::{LinearCode, SparseBinMat};
+    /// # use ldpc::classical::LinearCode;
+    /// use sparse_bin_mat::SparseBinMat;
+    ///
     /// // The Hamming code
     /// let parity_check_matrix = SparseBinMat::new(
     ///     7,
@@ -241,9 +252,9 @@ impl LinearCode {
     /// );
     /// let other_hamming_code = LinearCode::from_parity_check_matrix(parity_check_matrix);
     ///
-    /// assert!(hamming_code.has_same_codespace_as(&other_hamming_code));
+    /// assert!(hamming_code.has_same_codespace(&other_hamming_code));
     /// ```
-    pub fn has_same_codespace_as(&self, other: &Self) -> bool {
+    pub fn has_same_codespace(&self, other: &Self) -> bool {
         self.len() == other.len()
             && (&self.parity_check_matrix * &other.generator_matrix.transposed()).is_zero()
     }
@@ -255,13 +266,13 @@ impl LinearCode {
 
     /// Returns the number of rows of the parity check matrix
     /// of the code.
-    pub fn number_of_checks(&self) -> usize {
+    pub fn num_checks(&self) -> usize {
         self.parity_check_matrix.number_of_rows()
     }
 
     /// Returns the number of rows of the generator matrix
     /// of the code.
-    pub fn number_of_generators(&self) -> usize {
+    pub fn num_generators(&self) -> usize {
         self.generator_matrix.number_of_rows()
     }
 
@@ -270,7 +281,8 @@ impl LinearCode {
     /// # Example
     ///
     /// ```
-    /// # use ldpc::{LinearCode, SparseBinMat};
+    /// # use ldpc::classical::LinearCode;
+    /// use sparse_bin_mat::SparseBinMat;
     /// let parity_check_matrix = SparseBinMat::new(
     ///     7,
     ///     vec![vec![0, 1, 2, 4], vec![0, 1, 3, 5], vec![0, 2, 3, 6]]
@@ -291,7 +303,7 @@ impl LinearCode {
     /// The execution time of this method scale exponentially with the
     /// dimension of the code.
     pub fn minimal_distance(&self) -> Option<usize> {
-        (1..=self.number_of_generators())
+        (1..=self.num_generators())
             .flat_map(|n| self.generator_matrix.rows().combinations(n))
             .filter_map(|generators| {
                 let weight = generators
@@ -318,7 +330,9 @@ impl LinearCode {
     /// # Example
     ///
     /// ```
-    /// # use ldpc::{LinearCode, SparseBinMat, SparseBinVec, Edge};
+    /// # use ldpc::classical::LinearCode;
+    /// use ldpc::classical::Edge;
+    /// use sparse_bin_mat::{SparseBinMat, SparseBinVec};
     /// let parity_check_matrix = SparseBinMat::new(
     ///     4,
     ///     vec![vec![0, 1], vec![0, 3], vec![1, 2]]
@@ -343,7 +357,9 @@ impl LinearCode {
     /// # Example
     ///
     /// ```
-    /// # use ldpc::{LinearCode, SparseBinMat, SparseBinVec};
+    /// # use ldpc::classical::LinearCode;
+    /// use sparse_bin_mat::{SparseBinMat, SparseBinVec};
+    ///
     /// let parity_check_matrix = SparseBinMat::new(
     ///     7,
     ///     vec![vec![0, 1, 2, 4], vec![0, 1, 3, 5], vec![0, 2, 3, 6]]
@@ -378,7 +394,9 @@ impl LinearCode {
     /// # Example
     ///
     /// ```
-    /// # use ldpc::{LinearCode, SparseBinMat, SparseBinVec};
+    /// # use ldpc::classical::LinearCode;
+    /// use sparse_bin_mat::{SparseBinMat, SparseBinVec};
+    ///
     /// let parity_check_matrix = SparseBinMat::new(
     ///     7,
     ///     vec![vec![0, 1, 2, 4], vec![0, 1, 3, 5], vec![0, 2, 3, 6]]
@@ -407,7 +425,9 @@ impl LinearCode {
     /// # Example
     ///
     /// ```
-    /// # use ldpc::{SparseBinMat, LinearCode};
+    /// # use ldpc::classical::LinearCode;
+    /// use sparse_bin_mat::SparseBinMat;
+    ///
     /// use ldpc::noise_model::{BinarySymmetricChannel, Probability};
     /// use rand::thread_rng;
     ///

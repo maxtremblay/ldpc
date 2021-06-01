@@ -1,4 +1,4 @@
-use crate::LinearCode;
+use crate::classical::LinearCode;
 use pauli::PauliOperator;
 use sparse_bin_mat::{SparseBinMat, SparseBinVec};
 
@@ -85,7 +85,7 @@ impl CssCode {
     ///
     /// ```
     /// # use ldpc::quantum::CssCode;
-    /// # use ldpc::LinearCode;
+    /// # use ldpc::classical::LinearCode;
     /// let repetition_code = LinearCode::repetition_code(3);
     /// let surface_code = CssCode::hypergraph_product(&repetition_code, &repetition_code);
     ///
@@ -116,7 +116,7 @@ impl CssCode {
                 &first_code
                     .parity_check_matrix()
                     .transposed()
-                    .kron_with(&SparseBinMat::identity(second_code.number_of_checks())),
+                    .kron_with(&SparseBinMat::identity(second_code.num_checks())),
             )
     }
 
@@ -128,7 +128,7 @@ impl CssCode {
             .parity_check_matrix()
             .kron_with(&SparseBinMat::identity(second_code.len()))
             .horizontal_concat_with(
-                &SparseBinMat::identity(first_code.number_of_checks())
+                &SparseBinMat::identity(first_code.num_checks())
                     .kron_with(&second_code.parity_check_matrix().transposed()),
             )
     }

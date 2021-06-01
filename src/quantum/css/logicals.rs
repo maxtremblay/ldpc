@@ -1,4 +1,4 @@
-use crate::LinearCode;
+use crate::classical::LinearCode;
 use sparse_bin_mat::{SparseBinMat, SparseBinVec};
 
 // This implement a variation of the method
@@ -126,8 +126,8 @@ mod test {
     #[test]
     fn random_hypergraph_product() {
         let code = LinearCode::random_regular_code()
-            .number_of_bits(25)
-            .number_of_checks(15)
+            .num_bits(25)
+            .num_checks(15)
             .bit_degree(3)
             .check_degree(5)
             .sample_with(&mut thread_rng())

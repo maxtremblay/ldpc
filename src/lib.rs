@@ -7,15 +7,15 @@
 //! that can be used to generate random error for codes.  # Example
 //!
 //! ```
-//! use ldpc::LinearCode;
+//! use ldpc::classical::LinearCode;
 //! use ldpc::noise_model::{Probability, BinarySymmetricChannel};
 //! use rand::thread_rng;
 //!
 //! // This sample a random regular LDPC code.
 //! // It may returns an error, thus the unwrap.
 //! let code = LinearCode::random_regular_code()
-//!     .number_of_bits(40)
-//!     .number_of_checks(20)
+//!     .num_bits(40)
+//!     .num_checks(20)
 //!     .bit_degree(3)
 //!     .check_degree(6)
 //!     .sample_with(&mut thread_rng())
@@ -27,13 +27,9 @@
 //! let error = code.random_error(&noise, &mut thread_rng());
 //! ```
 
-pub mod decoders;
-
-mod linear_code;
-pub use crate::linear_code::{Edge, Edges, LinearCode, RandomRegularCode};
-
-pub mod noise_model;
 
 pub use sparse_bin_mat::{SparseBinMat, SparseBinSlice, SparseBinVec};
 
+pub mod classical;
+pub mod noise_model;
 pub mod quantum;
