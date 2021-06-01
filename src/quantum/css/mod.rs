@@ -58,22 +58,79 @@ impl CssCode {
 
     /// Returns an instance of the Shor code.
     pub fn shor_code() -> Self {
-        let x_code = LinearCode::from_parity_check_matrix(SparseBinMat::new(
-            9,
-            vec![vec![0, 1, 2, 3, 4, 5], vec![3, 4, 5, 6, 7, 8]],
-        ));
-        let z_code = LinearCode::from_parity_check_matrix(SparseBinMat::new(
-            9,
-            vec![
-                vec![0, 1],
-                vec![1, 2],
-                vec![3, 4],
-                vec![4, 5],
-                vec![6, 7],
-                vec![7, 8],
-            ],
-        ));
-        Self::new(&x_code, &z_code)
+        Self {
+            x_stabilizers: SparseBinMat::new(
+                9,
+                vec![vec![0, 1, 2, 3, 4, 5], vec![3, 4, 5, 6, 7, 8]],
+            ),
+            z_stabilizers: SparseBinMat::new(
+                9,
+                vec![
+                    vec![0, 1],
+                    vec![1, 2],
+                    vec![3, 4],
+                    vec![4, 5],
+                    vec![6, 7],
+                    vec![7, 8],
+                ],
+            ),
+            x_logicals: SparseBinMat::new(9, vec![vec![0, 1, 2]]),
+            z_logicals: SparseBinMat::new(9, vec![vec![0, 3, 6]]),
+        }
+    }
+
+    /// Returns the hypergraph product of two linear codes.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use ldpc::quantum::CssCode;
+    /// # use ldpc::LinearCode;
+    /// let repetition_code = LinearCode::repetition_code(3);
+    /// let surface_code = CssCode::hypergraph_product(&repetition_code, &repetition_code);
+    ///
+    /// use pauli::{PauliOperator, X, Z};
+    ///
+    /// let logical_x = PauliOperator::new(13, vec![0, 3, 6], vec![X, X, X]);
+    /// assert!(surface_code.has_logical(&logical_x));
+    ///
+    /// let logical_z = PauliOperator::new(13, vec![0, 1, 2], vec![Z, Z, Z]);
+    /// assert!(surface_code.has_logical(&logical_z));
+    /// ```
+    pub fn hypergraph_product(first_code: &LinearCode, second_code: &LinearCode) -> Self {
+        let x_checks = Self::hypergraph_product_x_checks(first_code, second_code);
+        let z_checks = Self::hypergraph_product_z_checks(first_code, second_code);
+        Self::new(
+            &LinearCode::from_parity_check_matrix(x_checks),
+            &LinearCode::from_parity_check_matrix(z_checks),
+        )
+    }
+
+    fn hypergraph_product_x_checks(
+        first_code: &LinearCode,
+        second_code: &LinearCode,
+    ) -> SparseBinMat {
+        SparseBinMat::identity(first_code.len())
+            .kron_with(second_code.parity_check_matrix())
+            .horizontal_concat_with(
+                &first_code
+                    .parity_check_matrix()
+                    .transposed()
+                    .kron_with(&SparseBinMat::identity(second_code.number_of_checks())),
+            )
+    }
+
+    fn hypergraph_product_z_checks(
+        first_code: &LinearCode,
+        second_code: &LinearCode,
+    ) -> SparseBinMat {
+        first_code
+            .parity_check_matrix()
+            .kron_with(&SparseBinMat::identity(second_code.len()))
+            .horizontal_concat_with(
+                &SparseBinMat::identity(first_code.number_of_checks())
+                    .kron_with(&second_code.parity_check_matrix().transposed()),
+            )
     }
 
     /// Returns the number of physical qubits in the code.
@@ -85,13 +142,7 @@ impl CssCode {
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
-
-    /// Returns the number of x stabilizer generators.
-    pub fn num_x_stabs(&self) -> usize {
-        self.x_stabilizers.number_of_rows()
-    }
-
-    /// Returns the number of z stabilizer generators.
+    /// Returns the number of x stabilizer generators.  pub fn num_x_stabs(&self) -> usize { self.x_stabilizers.number_of_rows() } Returns the number of z stabilizer generators.
     pub fn num_z_stabs(&self) -> usize {
         self.z_stabilizers.number_of_rows()
     }
@@ -136,7 +187,7 @@ impl CssCode {
         }
     }
 
-    /// Checks if an operator commutes with all stabilizers.
+    /// Checks if an operator is a (potentially trivial) logical operator of the code.
     ///
     /// # Example
     ///
@@ -146,13 +197,40 @@ impl CssCode {
     /// use sparse_bin_mat::SparseBinVec;
     ///
     /// let code = CssCode::shor_code();
-    /// let logical_x = PauliOperator::new(9, vec![0, 3, 6], vec![Z, Z, Z]);
-    /// assert!(code.has_logical(&logical_x));
+    ///
+    /// let logical = PauliOperator::new(9, vec![0, 3, 6], vec![Z, Z, Z]);
+    /// assert!(code.has_logical(&logical));
+    ///
+    /// let operator = PauliOperator::new(9, vec![0, 3, 6], vec![Z, X, Z]);
+    /// assert!(!code.has_logical(&operator));
     /// ```
     pub fn has_logical(&self, operator: &PauliOperator) -> bool {
         self.syndrome_of(operator).is_trivial()
     }
 
+    /// Checks if an operator is a stabilizer of the code.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use ldpc::quantum::{CssCode, CssSyndrome};
+    /// use pauli::{X, Y, Z, PauliOperator};
+    /// use sparse_bin_mat::SparseBinVec;
+    ///
+    /// let code = CssCode::shor_code();
+    ///
+    /// let stabilizer = PauliOperator::new(9, vec![0, 1, 2, 3, 4, 5], vec![X, X, X, X, Y, Y]);
+    /// assert!(code.has_stabilizer(&stabilizer));
+    ///
+    /// let operator = PauliOperator::new(9, vec![0, 1, 2, 3, 4, 6], vec![X, X, X, X, Y, Z]);
+    /// assert!(!code.has_stabilizer(&operator));
+    /// ```
+    pub fn has_stabilizer(&self, operator: &PauliOperator) -> bool {
+        self.has_logical(operator)
+            && self
+                .logicals()
+                .all(|logical| logical.commutes_with(operator))
+    }
 
     /// Returns the binary matrix representing the X stabilizer
     /// generators in binary form.
@@ -164,6 +242,18 @@ impl CssCode {
     /// generators in binary form.
     pub fn z_stabs_binary(&self) -> &SparseBinMat {
         &self.z_stabilizers
+    }
+
+    /// Returns the binary matrix representing the X logical
+    /// generators in binary form.
+    pub fn x_logicals_binary(&self) -> &SparseBinMat {
+        &self.x_logicals
+    }
+
+    /// Returns the binary matrix representing the Z logical
+    /// generators in binary form.
+    pub fn z_logicals_binary(&self) -> &SparseBinMat {
+        &self.z_logicals
     }
 
     /// Returns an iterator throught all stabilizer generators of the code.
@@ -207,16 +297,38 @@ impl CssCode {
             }))
     }
 
-    /// Returns the binary matrix representing the X logical
-    /// generators in binary form.
-    pub fn x_logicals_binary(&self) -> &SparseBinMat {
-        &self.x_logicals
-    }
-
-    /// Returns the binary matrix representing the Z logical
-    /// generators in binary form.
-    pub fn z_logicals_binary(&self) -> &SparseBinMat {
-        &self.z_logicals
+    /// Returns an iterator throught all logical operator generators of the code.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use ldpc::quantum::CssCode;
+    /// use pauli::{PauliOperator, X, Z};
+    ///
+    /// let code = CssCode::shor_code();
+    /// let mut logicals = code.logicals();
+    ///
+    /// assert_eq!(logicals.next(), Some(PauliOperator::new(9, vec![0, 1, 2], vec![X; 3])));
+    /// assert_eq!(logicals.next(), Some(PauliOperator::new(9, vec![0, 3, 6], vec![Z; 3])));
+    /// ```
+    pub fn logicals<'a>(&'a self) -> impl Iterator<Item = PauliOperator> + 'a {
+        use pauli::{X, Z};
+        self.x_logicals
+            .rows()
+            .map(move |logical| {
+                PauliOperator::new(
+                    self.len(),
+                    logical.non_trivial_positions().collect(),
+                    vec![X; logical.weight()],
+                )
+            })
+            .chain(self.z_logicals.rows().map(move |logical| {
+                PauliOperator::new(
+                    self.len(),
+                    logical.non_trivial_positions().collect(),
+                    vec![Z; logical.weight()],
+                )
+            }))
     }
 }
 
@@ -280,5 +392,38 @@ mod test {
             z: SparseBinVec::new(6, vec![0, 2]),
         };
         assert_eq!(code.syndrome_of(&error), expected);
+    }
+
+    #[test]
+    fn hypergraph_product_of_repetition_codes() {
+        let repetition_code = LinearCode::repetition_code(3);
+        let surface_code = CssCode::hypergraph_product(&repetition_code, &repetition_code);
+        println!("{}", repetition_code.parity_check_matrix());
+
+        let expected_x_stabilizers = SparseBinMat::new(
+            13,
+            vec![
+                vec![0, 1, 9],
+                vec![1, 2, 10],
+                vec![3, 4, 9, 11],
+                vec![4, 5, 10, 12],
+                vec![6, 7, 11],
+                vec![7, 8, 12],
+            ],
+        );
+        assert_eq!(surface_code.x_stabs_binary(), &expected_x_stabilizers);
+
+        let expected_z_stabilizers = SparseBinMat::new(
+            13,
+            vec![
+                vec![0, 3, 9],
+                vec![1, 4, 9, 10],
+                vec![2, 5, 10],
+                vec![3, 6, 11],
+                vec![4, 7, 11, 12],
+                vec![5, 8, 12],
+            ],
+        );
+        assert_eq!(surface_code.z_stabs_binary(), &expected_z_stabilizers);
     }
 }

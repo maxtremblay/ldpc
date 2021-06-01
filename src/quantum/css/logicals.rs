@@ -89,6 +89,7 @@ impl Logicals {
 #[cfg(test)]
 mod test {
     use super::*;
+    use rand::thread_rng;
 
     #[test]
     fn steane_code() {
@@ -122,8 +123,20 @@ mod test {
         assert_anticommuting_logical_pairs(&x_logicals, &z_logicals);
     }
 
-    // TODO: Add a test for some random codes when there is an implementation.
-    // Most likely, this is going to be using the hypergraph product.
+    #[test]
+    fn random_hypergraph_product() {
+        let code = LinearCode::random_regular_code()
+            .number_of_bits(25)
+            .number_of_checks(15)
+            .bit_degree(3)
+            .check_degree(5)
+            .sample_with(&mut thread_rng())
+            .unwrap();
+        let (x_logicals, z_logicals) = from_linear_codes(&code, &code);
+        assert_logicals_commute_with_stabilizers(&x_logicals, code.parity_check_matrix());
+        assert_logicals_commute_with_stabilizers(&z_logicals, code.parity_check_matrix());
+        assert_anticommuting_logical_pairs(&x_logicals, &z_logicals);
+    }
 
     fn assert_logicals_commute_with_stabilizers(
         logicals: &SparseBinMat,
