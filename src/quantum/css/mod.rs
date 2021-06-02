@@ -2,6 +2,7 @@ use crate::classical::LinearCode;
 use crate::noise_model::NoiseModel;
 use pauli::PauliOperator;
 use rand::Rng;
+use serde::{Deserialize, Serialize};
 use sparse_bin_mat::{SparseBinMat, SparseBinVec};
 
 mod logicals;
@@ -21,7 +22,7 @@ pub use syndrome::CssSyndrome;
 ///
 /// Any stabilizer generator or logical generator of a CSS code is
 /// either composed of only Is and Xs or only Is and Zs.
-#[derive(Debug, PartialEq, Eq, Clone, Hash)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash, Serialize, Deserialize)]
 pub struct CssCode {
     x_stabilizers: SparseBinMat,
     z_stabilizers: SparseBinMat,
