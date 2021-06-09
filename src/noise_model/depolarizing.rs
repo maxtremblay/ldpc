@@ -3,11 +3,12 @@ use pauli::{Pauli, PauliOperator, X, Y, Z};
 use rand::distributions::{Bernoulli, Distribution};
 use rand::seq::SliceRandom;
 use rand::Rng;
+use serde::{Deserialize, Serialize};
 use std::fmt;
 
 /// A depolarizing noise channel apply one of the 3 non-trivial Pauli
 /// operator with the given probrability.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct DepolarizingNoise {
     distribution: Bernoulli,
     probability: f64,
