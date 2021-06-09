@@ -122,7 +122,7 @@ impl LinearCode {
     /// assert!(code.has_same_codespace(&LinearCode::repetition_code(3)));
     /// ```
     pub fn repetition_code(length: usize) -> Self {
-        let checks = (0..length-1).map(|c| vec![c, c+1]).collect();
+        let checks = (0..length - 1).map(|c| vec![c, c + 1]).collect();
         let matrix = SparseBinMat::new(length, checks);
         Self::from_parity_check_matrix(matrix)
     }
