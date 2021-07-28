@@ -1,5 +1,5 @@
 use super::{NoiseModel, Probability};
-use crate::SparseBinVec;
+use sparse_bin_mat::SparseBinVec;
 use itertools::Itertools;
 use rand::distributions::{Bernoulli, Distribution};
 use rand::Rng;

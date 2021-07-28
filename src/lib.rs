@@ -10,8 +10,6 @@
 //!
 //! Finally, the [noise model module](noise_model) contains a generic trait for noise generation.
 
-pub use sparse_bin_mat::{SparseBinMat, SparseBinSlice, SparseBinVec};
-
 pub mod classical;
 pub mod noise_model;
 pub mod quantum;
