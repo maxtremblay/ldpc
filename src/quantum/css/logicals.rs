@@ -1,5 +1,5 @@
 use crate::classical::LinearCode;
-use sparse_bin_mat::{SparseBinMat, SparseBinVec};
+use sparse_bin_mat::{SparseBinMat, SparseBinVec, BinNum};
 
 // This implement a variation of the method
 // introduced in https://arxiv.org/abs/0903.5256
@@ -52,7 +52,7 @@ impl Logicals {
     }
 
     fn anticommute(x_generator: &SparseBinVec, z_generator: &SparseBinVec) -> bool {
-        x_generator.dot_with(z_generator).unwrap() == 1
+        x_generator.dot_with(z_generator).unwrap() == BinNum::one()
     }
 
     fn find_anticommuting_z_generator(
