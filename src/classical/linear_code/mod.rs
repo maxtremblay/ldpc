@@ -56,6 +56,21 @@ pub struct LinearCode {
 }
 
 impl LinearCode {
+    pub fn from_both_matrices(generator_matrix: SparseBinMat, parity_check_matrix: SparseBinMat) -> Self {
+        if generator_matrix.number_of_columns() != parity_check_matrix.number_of_columns() {
+            panic!("matrics have different number of bits (columns)");
+        }
+        let bit_adjacencies = parity_check_matrix.transposed();
+        if !(&generator_matrix * &bit_adjacencies).is_zero() {
+            panic!("matrices are non orthogonal");
+        }
+        Self {
+            generator_matrix,
+            parity_check_matrix,
+            bit_adjacencies
+        }
+    }
+
     /// Creates a new linear code from the given parity check matrix.
     ///
     /// # Example

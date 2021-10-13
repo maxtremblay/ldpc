@@ -1,3 +1,4 @@
+use super::{LinearDecoder, SyndromeDecoder};
 use crate::noise_model::Probability;
 use itertools::Itertools;
 use sparse_bin_mat::{SparseBinMat, SparseBinSlice, SparseBinVec};
@@ -9,6 +10,25 @@ pub struct BpDecoder {
     transposed_mat: SparseBinMat,
     likelyhoods: Vec<f64>,
     num_iterations: usize,
+}
+
+impl LinearDecoder for BpDecoder {
+    fn decode(&self, message: SparseBinSlice) -> SparseBinVec {
+        let syndrome = &self.parity_mat * &message;
+        let correction = self.correction_for(syndrome.as_view());
+        &message + &correction
+    }
+}
+
+impl<'a> SyndromeDecoder<SparseBinSlice<'a>, SparseBinVec> for BpDecoder {
+    fn correction_for(&self, syndrome: SparseBinSlice) -> SparseBinVec {
+        self.initialize_from(syndrome.as_view())
+            .update_until(|state| {
+                &(&self.parity_mat * &state.decode()).as_view() == &syndrome
+                    || state.num_iterations == self.num_iterations
+            })
+            .decode()
+    }
 }
 
 impl BpDecoder {
@@ -23,20 +43,6 @@ impl BpDecoder {
             likelyhoods,
             num_iterations,
         }
-    }
-
-    pub fn decode(&self, vector: SparseBinSlice) -> SparseBinVec {
-        let syndrome = &self.parity_mat * &vector;
-        self.decode_from_syndrome(syndrome.as_view())
-    }
-
-    pub fn decode_from_syndrome(&self, syndrome: SparseBinSlice) -> SparseBinVec {
-        self.initialize_from(syndrome.as_view())
-            .update_until(|state| {
-                &(&self.parity_mat * &state.decode()).as_view() == &syndrome
-                    || state.num_iterations == self.num_iterations
-            })
-            .decode()
     }
 
     fn initialize_from<'a>(&'a self, syndrome: SparseBinSlice<'a>) -> BpState<'a> {
@@ -190,7 +196,8 @@ impl Messages {
 mod test {
     use super::*;
     use crate::classical::LinearCode;
-    use rand::thread_rng;
+    use rand::rngs::StdRng;
+    use rand::SeedableRng;
 
     #[test]
     fn no_error_for_hamming_code() {
@@ -207,8 +214,8 @@ mod test {
         let codeword = SparseBinVec::new(7, vec![0, 1, 2]);
         let error = SparseBinVec::new(7, vec![0]);
         let corrupted = &codeword + &error;
-        let correction = decoder.decode(corrupted.as_view());
-        assert_eq!(&corrupted + &correction, codeword);
+        let decoded = decoder.decode(corrupted.as_view());
+        assert_eq!(decoded, codeword);
     }
 
     #[test]
@@ -218,8 +225,8 @@ mod test {
         let codeword = SparseBinVec::new(7, vec![3, 4, 5, 6]);
         let error = SparseBinVec::new(7, vec![2]);
         let corrupted = &codeword + &error;
-        let correction = decoder.decode(corrupted.as_view());
-        assert_eq!(&corrupted + &correction, codeword);
+        let decoded = decoder.decode(corrupted.as_view());
+        assert_eq!(decoded, codeword);
     }
 
     #[test]
@@ -229,9 +236,9 @@ mod test {
         let codeword = SparseBinVec::new(7, vec![0, 2, 4, 6]);
         let error = SparseBinVec::new(7, vec![0, 2]);
         let corrupted = &codeword + &error;
-        let correction = decoder.decode(corrupted.as_view());
+        let decoded = decoder.decode(corrupted.as_view());
         let expected = SparseBinVec::new(7, vec![1, 4, 6]);
-        assert_eq!(&corrupted + &correction, expected);
+        assert_eq!(decoded, expected);
     }
 
     fn random_code() -> LinearCode {
@@ -240,7 +247,7 @@ mod test {
             .num_checks(12)
             .bit_degree(3)
             .check_degree(4)
-            .sample_with(&mut thread_rng())
+            .sample_with(&mut StdRng::seed_from_u64(123))
             .unwrap()
     }
 
@@ -259,8 +266,8 @@ mod test {
         let codeword = code.generator_matrix().row(0).unwrap();
         let error = SparseBinVec::new(code.len(), vec![0]);
         let corrupted = &codeword + &error;
-        let correction = decoder.decode(corrupted.as_view());
-        assert_eq!((&corrupted + &correction).as_view(), codeword);
+        let decoded = decoder.decode(corrupted.as_view());
+        assert_eq!(decoded.as_view(), codeword);
     }
 
     #[test]
@@ -270,8 +277,8 @@ mod test {
         let codeword = code.generator_matrix().row(0).unwrap();
         let error = SparseBinVec::new(code.len(), vec![2]);
         let corrupted = &codeword + &error;
-        let correction = decoder.decode(corrupted.as_view());
-        assert_eq!((&corrupted + &correction).as_view(), codeword);
+        let decoded = decoder.decode(corrupted.as_view());
+        assert_eq!(decoded.as_view(), codeword);
     }
 
     #[test]
@@ -281,7 +288,7 @@ mod test {
         let codeword = code.generator_matrix().row(0).unwrap();
         let error = SparseBinVec::new(code.len(), vec![0, 10]);
         let corrupted = &codeword + &error;
-        let correction = decoder.decode(corrupted.as_view());
-        assert_eq!((&corrupted + &correction).as_view(), codeword);
+        let decoded = decoder.decode(corrupted.as_view());
+        assert_eq!(decoded.as_view(), codeword);
     }
 }

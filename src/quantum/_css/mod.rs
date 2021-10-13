@@ -1,135 +1,17 @@
-use crate::classical::decoders::{ClassicalSyndromeDecoder, SyndromeDecoder};
-use pauli::{Pauli, PauliOperator};
+use crate::classical::LinearCode;
+use crate::noise_model::NoiseModel;
+use pauli::PauliOperator;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
-use std::ops::Deref;
+use sparse_bin_mat::{SparseBinMat, SparseBinVec};
 
 mod logicals;
 use logicals::from_linear_codes;
 
-use sparse_bin_mat::{SparseBinMat, SparseBinSlice, SparseBinVec, SparseBinVecBase};
+mod syndrome;
+pub use syndrome::CssSyndrome;
 
-use crate::{classical::LinearCode, noise_model::NoiseModel};
-
-#[derive(Debug, PartialEq, Eq, Clone, Hash, Serialize, Deserialize)]
-pub struct Css<X, Z = X> {
-    pub x: X,
-    pub z: Z,
-}
-
-impl<T> Css<T> {
-    pub fn map<'a, F, S>(&'a self, func: F) -> Css<S>
-    where
-        F: Fn(&'a T) -> S,
-    {
-        Css {
-            x: func(&self.x),
-            z: func(&self.z),
-        }
-    }
-
-    pub fn map_with_pauli<'a, F, S>(&'a self, func: F) -> Css<S>
-    where
-        F: Fn(&'a T, Pauli) -> S,
-    {
-        Css {
-            x: func(&self.x, Pauli::X),
-            z: func(&self.z, Pauli::Z),
-        }
-    }
-
-    pub fn both<F>(&self, func: F) -> bool
-    where
-        F: Fn(&T) -> bool,
-    {
-        func(&self.x) && func(&self.z)
-    }
-}
-
-impl<X, Z> Css<X, Z> {
-    pub fn map_each<'a, F, G, XX, ZZ>(&'a self, funcs: Css<F, G>) -> Css<XX, ZZ>
-    where
-        F: Fn(&'a X) -> XX,
-        G: Fn(&'a Z) -> ZZ,
-    {
-        Css {
-            x: (funcs.x)(&self.x),
-            z: (funcs.z)(&self.z),
-        }
-    }
-
-    pub fn pair<XX, ZZ>(self, other: Css<XX, ZZ>) -> Css<(X, XX), (Z, ZZ)> {
-        Css {
-            x: (self.x, other.x),
-            z: (self.z, other.z),
-        }
-    }
-
-    pub fn combine_with<F, T>(self, func: F) -> T
-    where
-        F: Fn(X, Z) -> T,
-    {
-        func(self.x, self.z)
-    }
-
-    pub fn swap_xz(self) -> Css<Z, X> {
-        Css {
-            x: self.z,
-            z: self.x,
-        }
-    }
-
-    pub fn as_ref(&self) -> Css<&X, &Z> {
-        Css {
-            x: &self.x,
-            z: &self.z,
-        }
-    }
-
-    pub fn as_mut(&mut self) -> Css<&mut X, &mut Z> {
-        Css {
-            x: &mut self.x,
-            z: &mut self.z,
-        }
-    }
-}
-
-pub type CssOperator = Css<SparseBinVec>;
-
-impl<'a> From<&'a PauliOperator> for CssOperator {
-    fn from(operator: &'a PauliOperator) -> Self {
-        Self {
-            x: SparseBinVec::new(operator.len(), operator.x_part().into_raw_positions()),
-            z: SparseBinVec::new(operator.len(), operator.z_part().into_raw_positions()),
-        }
-    }
-}
-
-pub type CssSyndrome<T = Vec<usize>> = Css<SparseBinVecBase<T>>;
-pub type CssSyndromeView<'a> = Css<SparseBinSlice<'a>>;
-
-impl<T> CssSyndrome<T>
-where
-    T: Deref<Target = [usize]>,
-{
-    pub fn is_trivial(&self) -> bool {
-        self.both(|syndrome| syndrome.is_zero())
-    }
-}
-
-pub type CssDecoder<D> = Css<D>;
-
-impl<'a, D> SyndromeDecoder<CssSyndromeView<'a>, CssOperator> for CssDecoder<D>
-where
-    D: ClassicalSyndromeDecoder<'a>,
-{
-    fn correction_for(&self, syndrome: CssSyndromeView<'a>) -> CssOperator {
-        self.as_ref()
-            .pair(syndrome)
-            .map(|(decoder, syndrome)| decoder.correction_for(syndrome.clone()))
-        // The last clone is free since syndrome is a view (slice).
-    }
-}
+pub mod decoders;
 
 /// A quantum CSS code is defined from a pair of orthogonal linear codes.
 /// The checks of the first code are used as a binary representation
@@ -143,8 +25,10 @@ where
 /// either composed of only Is and Xs or only Is and Zs.
 #[derive(Debug, PartialEq, Eq, Clone, Hash, Serialize, Deserialize)]
 pub struct CssCode {
-    pub stabilizers: Css<SparseBinMat>,
-    pub logicals: Css<SparseBinMat>,
+    x_stabilizers: SparseBinMat,
+    z_stabilizers: SparseBinMat,
+    x_logicals: SparseBinMat,
+    z_logicals: SparseBinMat,
 }
 
 impl CssCode {
@@ -160,12 +44,12 @@ impl CssCode {
         {
             return Err(CssError::NonOrthogonalCodes);
         }
+        let (x_logicals, z_logicals) = from_linear_codes(x_code, z_code);
         Ok(Self {
-            stabilizers: Css {
-                x: x_code.parity_check_matrix().clone(),
-                z: z_code.parity_check_matrix().clone(),
-            },
-            logicals: from_linear_codes(x_code, z_code),
+            x_stabilizers: x_code.parity_check_matrix().clone(),
+            z_stabilizers: z_code.parity_check_matrix().clone(),
+            x_logicals,
+            z_logicals,
         })
     }
 
@@ -179,24 +63,23 @@ impl CssCode {
     /// Returns an instance of the Shor code.
     pub fn shor_code() -> Self {
         Self {
-            stabilizers: Css {
-                x: SparseBinMat::new(9, vec![vec![0, 1, 2, 3, 4, 5], vec![3, 4, 5, 6, 7, 8]]),
-                z: SparseBinMat::new(
-                    9,
-                    vec![
-                        vec![0, 1],
-                        vec![1, 2],
-                        vec![3, 4],
-                        vec![4, 5],
-                        vec![6, 7],
-                        vec![7, 8],
-                    ],
-                ),
-            },
-            logicals: Css {
-                x: SparseBinMat::new(9, vec![vec![0, 1, 2]]),
-                z: SparseBinMat::new(9, vec![vec![0, 3, 6]]),
-            },
+            x_stabilizers: SparseBinMat::new(
+                9,
+                vec![vec![0, 1, 2, 3, 4, 5], vec![3, 4, 5, 6, 7, 8]],
+            ),
+            z_stabilizers: SparseBinMat::new(
+                9,
+                vec![
+                    vec![0, 1],
+                    vec![1, 2],
+                    vec![3, 4],
+                    vec![4, 5],
+                    vec![6, 7],
+                    vec![7, 8],
+                ],
+            ),
+            x_logicals: SparseBinMat::new(9, vec![vec![0, 1, 2]]),
+            z_logicals: SparseBinMat::new(9, vec![vec![0, 3, 6]]),
         }
     }
 
@@ -256,7 +139,7 @@ impl CssCode {
 
     /// Returns the number of physical qubits in the code.
     pub fn len(&self) -> usize {
-        self.stabilizers.x.number_of_columns()
+        self.x_stabilizers.number_of_columns()
     }
 
     /// Checks if the code has zero physical qubits.
@@ -266,22 +149,22 @@ impl CssCode {
 
     /// Returns the number of x stabilizer generators.  
     pub fn num_x_stabs(&self) -> usize {
-        self.stabilizers.x.number_of_rows()
+        self.x_stabilizers.number_of_rows()
     }
 
     /// Returns the number of z stabilizer generators.
     pub fn num_z_stabs(&self) -> usize {
-        self.stabilizers.z.number_of_rows()
+        self.z_stabilizers.number_of_rows()
     }
 
     /// Returns the number of x logical generators.
     pub fn num_x_logicals(&self) -> usize {
-        self.logicals.z.number_of_rows()
+        self.x_logicals.number_of_rows()
     }
 
     /// Returns the number of z logical generators.
     pub fn num_z_logicals(&self) -> usize {
-        self.logicals.z.number_of_rows()
+        self.z_logicals.number_of_rows()
     }
 
     /// Returns both the X and Z parts of the syndrome of the given operator.
@@ -306,10 +189,12 @@ impl CssCode {
     /// assert_eq!(code.syndrome_of(&error), expected);
     /// ```
     pub fn syndrome_of(&self, operator: &PauliOperator) -> CssSyndrome {
-        self.stabilizers
-            .as_ref()
-            .pair(CssOperator::from(operator).swap_xz())
-            .map(|(stabs, operator)| *stabs * operator)
+        CssSyndrome {
+            x: &self.x_stabilizers
+                * &SparseBinVec::new(operator.len(), operator.z_part().into_raw_positions()),
+            z: &self.z_stabilizers
+                * &SparseBinVec::new(operator.len(), operator.x_part().into_raw_positions()),
+        }
     }
 
     /// Checks if an operator is a (potentially trivial) logical operator of the code.
@@ -360,25 +245,25 @@ impl CssCode {
     /// Returns the binary matrix representing the X stabilizer
     /// generators in binary form.
     pub fn x_stabs_binary(&self) -> &SparseBinMat {
-        &self.stabilizers.x
+        &self.x_stabilizers
     }
 
     /// Returns the binary matrix representing the Z stabilizer
     /// generators in binary form.
     pub fn z_stabs_binary(&self) -> &SparseBinMat {
-        &self.stabilizers.z
+        &self.z_stabilizers
     }
 
     /// Returns the binary matrix representing the X logical
     /// generators in binary form.
     pub fn x_logicals_binary(&self) -> &SparseBinMat {
-        &self.logicals.x
+        &self.x_logicals
     }
 
     /// Returns the binary matrix representing the Z logical
     /// generators in binary form.
     pub fn z_logicals_binary(&self) -> &SparseBinMat {
-        &self.logicals.z
+        &self.z_logicals
     }
 
     /// Returns an iterator throught all stabilizer generators of the code.
@@ -403,13 +288,23 @@ impl CssCode {
     /// assert!(stabilizers.next().is_none());
     /// ```
     pub fn stabilizers<'a>(&'a self) -> impl Iterator<Item = PauliOperator> + 'a {
-        self.stabilizers
-            .map_with_pauli(move |stabs, pauli| {
-                stabs
-                    .rows()
-                    .map(move |stab| Self::operator_from_vec(pauli, stab))
+        use pauli::{X, Z};
+        self.x_stabilizers
+            .rows()
+            .map(move |stab| {
+                PauliOperator::new(
+                    self.len(),
+                    stab.non_trivial_positions().collect(),
+                    vec![X; stab.weight()],
+                )
             })
-            .combine_with(Iterator::chain)
+            .chain(self.z_stabilizers.rows().map(move |stab| {
+                PauliOperator::new(
+                    self.len(),
+                    stab.non_trivial_positions().collect(),
+                    vec![Z; stab.weight()],
+                )
+            }))
     }
 
     /// Returns an iterator throught all logical operator generators of the code.
@@ -427,21 +322,23 @@ impl CssCode {
     /// assert_eq!(logicals.next(), Some(PauliOperator::new(9, vec![0, 3, 6], vec![Z; 3])));
     /// ```
     pub fn logicals<'a>(&'a self) -> impl Iterator<Item = PauliOperator> + 'a {
-        self.logicals
-            .map_with_pauli(move |stabs, pauli| {
-                stabs
-                    .rows()
-                    .map(move |stab| Self::operator_from_vec(pauli, stab))
+        use pauli::{X, Z};
+        self.x_logicals
+            .rows()
+            .map(move |logical| {
+                PauliOperator::new(
+                    self.len(),
+                    logical.non_trivial_positions().collect(),
+                    vec![X; logical.weight()],
+                )
             })
-            .combine_with(Iterator::chain)
-    }
-
-    fn operator_from_vec(pauli: Pauli, vector: SparseBinSlice) -> PauliOperator {
-        PauliOperator::new(
-            vector.len(),
-            vector.non_trivial_positions().collect(),
-            vec![pauli; vector.weight()],
-        )
+            .chain(self.z_logicals.rows().map(move |logical| {
+                PauliOperator::new(
+                    self.len(),
+                    logical.non_trivial_positions().collect(),
+                    vec![Z; logical.weight()],
+                )
+            }))
     }
 
     /// Generates a random error with the given noise model.
@@ -487,3 +384,80 @@ impl std::fmt::Display for CssError {
 }
 
 impl std::error::Error for CssError {}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn codes_should_have_same_length() {
+        let small = LinearCode::repetition_code(3);
+        let large = LinearCode::repetition_code(30);
+        let css = CssCode::try_new(&small, &large);
+        assert_eq!(css, Err(CssError::DifferentXandZLength(3, 30)));
+    }
+
+    #[test]
+    fn codes_should_be_orthogonal() {
+        let code = LinearCode::repetition_code(3);
+        let css = CssCode::try_new(&code, &code);
+        assert_eq!(css, Err(CssError::NonOrthogonalCodes));
+    }
+
+    #[test]
+    fn syndrome_steane_code() {
+        use pauli::{X, Y, Z};
+        let code = CssCode::steane_code();
+        let error = PauliOperator::new(7, vec![0, 3, 6], vec![X, Y, Z]);
+        let expected = CssSyndrome {
+            x: SparseBinVec::new(3, vec![1, 2]),
+            z: SparseBinVec::new(3, vec![0, 2]),
+        };
+        assert_eq!(code.syndrome_of(&error), expected);
+    }
+
+    #[test]
+    fn syndrome_shor_code() {
+        use pauli::{X, Y, Z};
+        let code = CssCode::shor_code();
+        let error = PauliOperator::new(9, vec![0, 3, 6], vec![X, Y, Z]);
+        let expected = CssSyndrome {
+            x: SparseBinVec::new(2, vec![0]),
+            z: SparseBinVec::new(6, vec![0, 2]),
+        };
+        assert_eq!(code.syndrome_of(&error), expected);
+    }
+
+    #[test]
+    fn hypergraph_product_of_repetition_codes() {
+        let repetition_code = LinearCode::repetition_code(3);
+        let surface_code = CssCode::hypergraph_product(&repetition_code, &repetition_code);
+        println!("{}", repetition_code.parity_check_matrix());
+
+        let expected_x_stabilizers = SparseBinMat::new(
+            13,
+            vec![
+                vec![0, 1, 9],
+                vec![1, 2, 10],
+                vec![3, 4, 9, 11],
+                vec![4, 5, 10, 12],
+                vec![6, 7, 11],
+                vec![7, 8, 12],
+            ],
+        );
+        assert_eq!(surface_code.x_stabs_binary(), &expected_x_stabilizers);
+
+        let expected_z_stabilizers = SparseBinMat::new(
+            13,
+            vec![
+                vec![0, 3, 9],
+                vec![1, 4, 9, 10],
+                vec![2, 5, 10],
+                vec![3, 6, 11],
+                vec![4, 7, 11, 12],
+                vec![5, 8, 12],
+            ],
+        );
+        assert_eq!(surface_code.z_stabs_binary(), &expected_z_stabilizers);
+    }
+}
