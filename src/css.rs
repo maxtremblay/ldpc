@@ -1,7 +1,7 @@
 use std::ops::Deref;
 
 use pauli::{Pauli, PauliOperator};
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use sparse_bin_mat::{SparseBinSlice, SparseBinVec, SparseBinVecBase};
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash, Serialize, Deserialize)]
@@ -87,8 +87,6 @@ impl<X, Z> Css<X, Z> {
     }
 }
 
-
-
 pub type CssOperator = Css<SparseBinVec>;
 
 impl<'a> From<&'a PauliOperator> for CssOperator {
@@ -100,6 +98,35 @@ impl<'a> From<&'a PauliOperator> for CssOperator {
     }
 }
 
+impl From<PauliOperator> for CssOperator {
+    fn from(operator: PauliOperator) -> Self {
+        Self::from(&operator)
+    }
+}
+
+impl<'a> From<&'a CssOperator> for PauliOperator {
+    fn from(operator: &'a CssOperator) -> Self {
+        let x = PauliOperator::new(
+            operator.x.len(),
+            operator.x.non_trivial_positions().collect(),
+            vec![Pauli::X; operator.x.weight()],
+        );
+        let z = PauliOperator::new(
+            operator.z.len(),
+            operator.z.non_trivial_positions().collect(),
+            vec![Pauli::Z; operator.z.weight()],
+        );
+        &x * &z
+    }
+}
+
+impl From<CssOperator> for PauliOperator {
+    fn from(operator: CssOperator) -> Self {
+        Self::from(&operator)
+    }
+}
+
+
 pub type CssSyndrome<T = Vec<usize>> = Css<SparseBinVecBase<T>>;
 pub type CssSyndromeView<'a> = Css<SparseBinSlice<'a>>;
 
@@ -109,5 +136,9 @@ where
 {
     pub fn is_trivial(&self) -> bool {
         self.both(|syndrome| syndrome.is_zero())
+    }
+
+    pub fn as_view(&self) -> CssSyndromeView {
+        self.map(|syndrome| syndrome.as_view())
     }
 }

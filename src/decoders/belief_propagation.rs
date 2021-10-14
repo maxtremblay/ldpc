@@ -1,4 +1,4 @@
-use super::{LinearDecoder, SyndromeDecoder};
+use super::{ClassicalSyndromeDecoder, LinearDecoder, SyndromeDecoder};
 use crate::noise::Probability;
 use itertools::Itertools;
 use sparse_bin_mat::{SparseBinMat, SparseBinSlice, SparseBinVec};
@@ -30,6 +30,8 @@ impl<'a> SyndromeDecoder<SparseBinSlice<'a>, SparseBinVec> for BpDecoder {
             .decode()
     }
 }
+
+impl<'a> ClassicalSyndromeDecoder<'a> for BpDecoder {}
 
 impl BpDecoder {
     pub fn new(parity_mat: &SparseBinMat, probability: Probability, num_iterations: usize) -> Self {
@@ -104,7 +106,6 @@ impl<'a> BpState<'a> {
                 likelyhoods[bit] += value;
             }
         }
-        println!("likelyhoods: {:?}", likelyhoods);
         SparseBinVec::new(
             likelyhoods.len(),
             likelyhoods
@@ -174,7 +175,7 @@ impl Messages {
             .collect_vec();
         for (check, mut bits) in self.bits.outer_iterator_mut().enumerate() {
             for (bit, value) in bits.iter_mut() {
-                *value = sums[bit] - self.checks.get(check, bit).unwrap() + likelyhoods[bit]
+                *value = sums[bit] - self.checks.get(check, bit).unwrap() + likelyhoods[bit];
             }
         }
         self

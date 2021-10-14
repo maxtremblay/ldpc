@@ -11,6 +11,7 @@ where
         self.as_ref()
             .pair(syndrome)
             .map(|(decoder, syndrome)| decoder.correction_for(syndrome.clone()))
+            .swap_xz()
     }
 }
 

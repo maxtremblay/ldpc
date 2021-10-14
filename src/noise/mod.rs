@@ -8,6 +8,8 @@
 //! Some standard noise models such as
 //! [`BinarySymmetricChannel`](BinarySymmetricChannel)
 //! are implemented.
+use std::fmt;
+
 use rand::Rng;
 
 mod binary_symmetric_channel;
@@ -24,6 +26,7 @@ pub trait NoiseModel {
     fn sample_error_of_length<R: Rng>(&self, length: usize, rng: &mut R) -> Self::Error;
 }
 
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Probability(f64);
 
 impl Probability {
@@ -41,5 +44,11 @@ impl Probability {
 
     pub fn value(&self) -> f64 {
         self.0
+    }
+}
+
+impl fmt::Display for Probability {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.value())
     }
 }

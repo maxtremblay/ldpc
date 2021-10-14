@@ -62,7 +62,6 @@ mod test {
         let code = LinearCode::hamming_code();
         let decoder = FlipDecoder::new(code);
         let error = SparseBinVec::new(7, Vec::new());
-        println!("OK");
         assert_eq!(decoder.decode(&error), SparseBinVec::zeros(7));
     }
 
