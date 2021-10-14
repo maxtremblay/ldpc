@@ -1,135 +1,15 @@
-use crate::classical::decoders::{ClassicalSyndromeDecoder, SyndromeDecoder};
+use crate::{
+    codes::LinearCode,
+    css::{Css, CssOperator, CssSyndrome},
+    noise::NoiseModel,
+};
 use pauli::{Pauli, PauliOperator};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
-use std::ops::Deref;
+use sparse_bin_mat::{SparseBinMat, SparseBinSlice};
 
 mod logicals;
 use logicals::from_linear_codes;
-
-use sparse_bin_mat::{SparseBinMat, SparseBinSlice, SparseBinVec, SparseBinVecBase};
-
-use crate::{classical::LinearCode, noise_model::NoiseModel};
-
-#[derive(Debug, PartialEq, Eq, Clone, Hash, Serialize, Deserialize)]
-pub struct Css<X, Z = X> {
-    pub x: X,
-    pub z: Z,
-}
-
-impl<T> Css<T> {
-    pub fn map<'a, F, S>(&'a self, func: F) -> Css<S>
-    where
-        F: Fn(&'a T) -> S,
-    {
-        Css {
-            x: func(&self.x),
-            z: func(&self.z),
-        }
-    }
-
-    pub fn map_with_pauli<'a, F, S>(&'a self, func: F) -> Css<S>
-    where
-        F: Fn(&'a T, Pauli) -> S,
-    {
-        Css {
-            x: func(&self.x, Pauli::X),
-            z: func(&self.z, Pauli::Z),
-        }
-    }
-
-    pub fn both<F>(&self, func: F) -> bool
-    where
-        F: Fn(&T) -> bool,
-    {
-        func(&self.x) && func(&self.z)
-    }
-}
-
-impl<X, Z> Css<X, Z> {
-    pub fn map_each<'a, F, G, XX, ZZ>(&'a self, funcs: Css<F, G>) -> Css<XX, ZZ>
-    where
-        F: Fn(&'a X) -> XX,
-        G: Fn(&'a Z) -> ZZ,
-    {
-        Css {
-            x: (funcs.x)(&self.x),
-            z: (funcs.z)(&self.z),
-        }
-    }
-
-    pub fn pair<XX, ZZ>(self, other: Css<XX, ZZ>) -> Css<(X, XX), (Z, ZZ)> {
-        Css {
-            x: (self.x, other.x),
-            z: (self.z, other.z),
-        }
-    }
-
-    pub fn combine_with<F, T>(self, func: F) -> T
-    where
-        F: Fn(X, Z) -> T,
-    {
-        func(self.x, self.z)
-    }
-
-    pub fn swap_xz(self) -> Css<Z, X> {
-        Css {
-            x: self.z,
-            z: self.x,
-        }
-    }
-
-    pub fn as_ref(&self) -> Css<&X, &Z> {
-        Css {
-            x: &self.x,
-            z: &self.z,
-        }
-    }
-
-    pub fn as_mut(&mut self) -> Css<&mut X, &mut Z> {
-        Css {
-            x: &mut self.x,
-            z: &mut self.z,
-        }
-    }
-}
-
-pub type CssOperator = Css<SparseBinVec>;
-
-impl<'a> From<&'a PauliOperator> for CssOperator {
-    fn from(operator: &'a PauliOperator) -> Self {
-        Self {
-            x: SparseBinVec::new(operator.len(), operator.x_part().into_raw_positions()),
-            z: SparseBinVec::new(operator.len(), operator.z_part().into_raw_positions()),
-        }
-    }
-}
-
-pub type CssSyndrome<T = Vec<usize>> = Css<SparseBinVecBase<T>>;
-pub type CssSyndromeView<'a> = Css<SparseBinSlice<'a>>;
-
-impl<T> CssSyndrome<T>
-where
-    T: Deref<Target = [usize]>,
-{
-    pub fn is_trivial(&self) -> bool {
-        self.both(|syndrome| syndrome.is_zero())
-    }
-}
-
-pub type CssDecoder<D> = Css<D>;
-
-impl<'a, D> SyndromeDecoder<CssSyndromeView<'a>, CssOperator> for CssDecoder<D>
-where
-    D: ClassicalSyndromeDecoder<'a>,
-{
-    fn correction_for(&self, syndrome: CssSyndromeView<'a>) -> CssOperator {
-        self.as_ref()
-            .pair(syndrome)
-            .map(|(decoder, syndrome)| decoder.correction_for(syndrome.clone()))
-        // The last clone is free since syndrome is a view (slice).
-    }
-}
 
 /// A quantum CSS code is defined from a pair of orthogonal linear codes.
 /// The checks of the first code are used as a binary representation
@@ -205,8 +85,8 @@ impl CssCode {
     /// # Example
     ///
     /// ```
-    /// # use ldpc::quantum::CssCode;
-    /// # use ldpc::classical::LinearCode;
+    /// # use ldpc::codes::CssCode;
+    /// # use ldpc::codes::LinearCode;
     /// let repetition_code = LinearCode::repetition_code(3);
     /// let surface_code = CssCode::hypergraph_product(&repetition_code, &repetition_code);
     ///
@@ -293,7 +173,8 @@ impl CssCode {
     /// # Example
     ///
     /// ```
-    /// # use ldpc::quantum::{CssCode, CssSyndrome};
+    /// # use ldpc::codes::CssCode;
+    /// # use ldpc::css::CssSyndrome;
     /// use pauli::{X, Z, PauliOperator};
     /// use sparse_bin_mat::SparseBinVec;
     ///
@@ -317,7 +198,8 @@ impl CssCode {
     /// # Example
     ///
     /// ```
-    /// # use ldpc::quantum::{CssCode, CssSyndrome};
+    /// # use ldpc::codes::CssCode;
+    /// # use ldpc::css::CssSyndrome;
     /// use pauli::{X, Z, PauliOperator};
     /// use sparse_bin_mat::SparseBinVec;
     ///
@@ -338,7 +220,8 @@ impl CssCode {
     /// # Example
     ///
     /// ```
-    /// # use ldpc::quantum::{CssCode, CssSyndrome};
+    /// # use ldpc::codes::CssCode;
+    /// # use ldpc::css::CssSyndrome;
     /// use pauli::{X, Y, Z, PauliOperator};
     /// use sparse_bin_mat::SparseBinVec;
     ///
@@ -386,7 +269,7 @@ impl CssCode {
     /// # Example
     ///
     /// ```
-    /// # use ldpc::quantum::CssCode;
+    /// # use ldpc::codes::CssCode;
     /// use pauli::{PauliOperator, X, Z};
     ///
     /// let code = CssCode::steane_code();
@@ -417,7 +300,7 @@ impl CssCode {
     /// # Example
     ///
     /// ```
-    /// # use ldpc::quantum::CssCode;
+    /// # use ldpc::codes::CssCode;
     /// use pauli::{PauliOperator, X, Z};
     ///
     /// let code = CssCode::shor_code();
@@ -449,8 +332,8 @@ impl CssCode {
     /// # Example
     ///
     /// ```
-    /// # use ldpc::quantum::CssCode;
-    /// use ldpc::noise_model::{DepolarizingNoise, Probability};
+    /// # use ldpc::codes::CssCode;
+    /// use ldpc::noise::{DepolarizingNoise, Probability};
     /// use rand::thread_rng;
     ///
     /// let code = CssCode::steane_code();

@@ -1,6 +1,9 @@
 mod flip;
 pub use flip::FlipDecoder;
 
+mod css;
+pub use css::CssDecoder;
+
 mod belief_propagation;
 pub use belief_propagation::BpDecoder;
 
@@ -15,3 +18,4 @@ pub trait SyndromeDecoder<Syndrome, Correction> {
 }
 
 pub trait ClassicalSyndromeDecoder<'a>: SyndromeDecoder<SparseBinSlice<'a>, SparseBinVec> {}
+

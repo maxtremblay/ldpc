@@ -1,5 +1,5 @@
-use ldpc::classical::LinearCode;
-use ldpc::noise_model::{BinarySymmetricChannel, Probability};
+use ldpc::codes::LinearCode;
+use ldpc::noise::{BinarySymmetricChannel, Probability};
 use rand::thread_rng;
 
 fn main() {

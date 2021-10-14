@@ -1,5 +1,5 @@
 use super::{LinearDecoder, SyndromeDecoder};
-use crate::noise_model::Probability;
+use crate::noise::Probability;
 use itertools::Itertools;
 use sparse_bin_mat::{SparseBinMat, SparseBinSlice, SparseBinVec};
 use sprs::{CsMat, TriMat};
@@ -131,17 +131,6 @@ impl<'a> BpState<'a> {
         self.update_while(|state| !condition(state))
     }
 
-    /* fn update_num_times(mut self, num_iterations: usize) -> Self {
-        println!("Syndrome: {}", self.syndrome);
-        for _ in 0..num_iterations {
-            println!("Correction: {}", self.decode());
-            println!("Bits to checks: {}", self.messages.bits.to_dense());
-            println!("Checks to bits: {}", self.messages.checks.to_dense());
-            self = self.update_once();
-        }
-        self
-    } */
-
     fn update_once(mut self) -> Self {
         self.num_iterations += 1;
         self.messages = self
@@ -195,7 +184,7 @@ impl Messages {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::classical::LinearCode;
+    use crate::codes::LinearCode;
     use rand::rngs::StdRng;
     use rand::SeedableRng;
 

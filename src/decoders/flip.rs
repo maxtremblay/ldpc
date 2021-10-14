@@ -1,4 +1,4 @@
-use crate::classical::LinearCode;
+use crate::codes::LinearCode;
 use sparse_bin_mat::{SparseBinVec, SparseBinVecBase};
 use std::borrow::Borrow;
 use std::fmt;

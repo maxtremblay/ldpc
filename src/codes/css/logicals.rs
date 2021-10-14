@@ -1,14 +1,12 @@
-use crate::classical::LinearCode;
-use sparse_bin_mat::{SparseBinMat, SparseBinVec, BinNum};
+use crate::css::Css;
+use crate::codes::LinearCode;
+use sparse_bin_mat::{BinNum, SparseBinMat, SparseBinVec};
 
 // This implement a variation of the method
 // introduced in https://arxiv.org/abs/0903.5256
 // to compute logical operator generators of a CSS
 // code from the linear codes.
-pub(super) fn from_linear_codes(
-    x_code: &LinearCode,
-    z_code: &LinearCode,
-) -> (SparseBinMat, SparseBinMat) {
+pub(super) fn from_linear_codes(x_code: &LinearCode, z_code: &LinearCode) -> Css<SparseBinMat> {
     Logicals::new(x_code, z_code).compute()
 }
 
@@ -38,17 +36,17 @@ impl Logicals {
             .collect()
     }
 
-    fn compute(mut self) -> (SparseBinMat, SparseBinMat) {
+    fn compute(mut self) -> Css<SparseBinMat> {
         while let Some(x_generator) = self.raw_x_generators.pop() {
             if let Some(z_generator) = self.find_anticommuting_z_generator(&x_generator) {
                 self.update_remaining_generators(&x_generator, &z_generator);
                 self.push_logicals(x_generator, z_generator);
             }
         }
-        (
-            SparseBinMat::new(self.length, self.x_logicals),
-            SparseBinMat::new(self.length, self.z_logicals),
-        )
+        Css {
+            x: SparseBinMat::new(self.length, self.x_logicals),
+            z: SparseBinMat::new(self.length, self.z_logicals),
+        }
     }
 
     fn anticommute(x_generator: &SparseBinVec, z_generator: &SparseBinVec) -> bool {
@@ -94,10 +92,14 @@ mod test {
     #[test]
     fn steane_code() {
         let hamming = LinearCode::hamming_code();
-        let (x_logicals, z_logicals) = from_linear_codes(&hamming, &hamming);
-        assert_logicals_commute_with_stabilizers(&x_logicals, hamming.parity_check_matrix());
-        assert_logicals_commute_with_stabilizers(&z_logicals, hamming.parity_check_matrix());
-        assert_anticommuting_logical_pairs(&x_logicals, &z_logicals);
+        let logicals = from_linear_codes(&hamming, &hamming);
+        assert_commutations(
+            logicals,
+            Css {
+                x: hamming.parity_check_matrix(),
+                z: hamming.parity_check_matrix(),
+            },
+        )
     }
 
     #[test]
@@ -117,10 +119,8 @@ mod test {
             9,
             vec![vec![0, 1, 2, 3, 4, 5], vec![3, 4, 5, 6, 7, 8]],
         ));
-        let (x_logicals, z_logicals) = from_linear_codes(&x_code, &z_code);
-        assert_logicals_commute_with_stabilizers(&x_logicals, z_code.parity_check_matrix());
-        assert_logicals_commute_with_stabilizers(&z_logicals, x_code.parity_check_matrix());
-        assert_anticommuting_logical_pairs(&x_logicals, &z_logicals);
+        let logicals = from_linear_codes(&x_code, &z_code);
+        assert_commutations(logicals, Css {x: x_code.parity_check_matrix(), z: z_code.parity_check_matrix()});
     }
 
     #[test]
@@ -132,10 +132,14 @@ mod test {
             .check_degree(5)
             .sample_with(&mut thread_rng())
             .unwrap();
-        let (x_logicals, z_logicals) = from_linear_codes(&code, &code);
-        assert_logicals_commute_with_stabilizers(&x_logicals, code.parity_check_matrix());
-        assert_logicals_commute_with_stabilizers(&z_logicals, code.parity_check_matrix());
-        assert_anticommuting_logical_pairs(&x_logicals, &z_logicals);
+        let logicals = from_linear_codes(&code, &code);
+        assert_commutations(logicals, Css {x: code.parity_check_matrix(), z: code.parity_check_matrix()});
+    }
+
+    fn assert_commutations(logicals: Css<SparseBinMat>, par_matrices: Css<&SparseBinMat>) {
+        assert_logicals_commute_with_stabilizers(&logicals.x, par_matrices.x);
+        assert_logicals_commute_with_stabilizers(&logicals.z, par_matrices.z);
+        assert_anticommuting_logical_pairs(&logicals.x, &logicals.z);
     }
 
     fn assert_logicals_commute_with_stabilizers(

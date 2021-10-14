@@ -1,4 +1,4 @@
-use crate::noise_model::NoiseModel;
+use crate::noise::NoiseModel;
 use itertools::Itertools;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
@@ -21,7 +21,7 @@ pub use self::random::RandomRegularCode;
 /// This is example shows 2 way to define the Hamming code.
 ///
 /// ```
-/// # use ldpc::classical::LinearCode;
+/// # use ldpc::codes::LinearCode;
 /// use sparse_bin_mat::SparseBinMat;
 /// let parity_check_matrix = SparseBinMat::new(
 ///     7,
@@ -76,7 +76,7 @@ impl LinearCode {
     /// # Example
     ///
     /// ```
-    /// # use ldpc::classical::LinearCode;
+    /// # use ldpc::codes::LinearCode;
     /// use sparse_bin_mat::SparseBinMat;
     ///
     /// // 3 bits repetition code.
@@ -102,7 +102,7 @@ impl LinearCode {
     /// # Example
     ///
     /// ```
-    /// # use ldpc::classical::LinearCode;
+    /// # use ldpc::codes::LinearCode;
     /// use sparse_bin_mat::SparseBinMat;
     ///
     /// // 3 bits repetition code.
@@ -128,7 +128,7 @@ impl LinearCode {
     /// # Example
     ///
     /// ```
-    /// # use ldpc::classical::LinearCode;
+    /// # use ldpc::codes::LinearCode;
     /// use sparse_bin_mat::SparseBinMat;
     ///
     /// let matrix = SparseBinMat::new(3, vec![vec![0, 1], vec![1, 2]]);
@@ -147,7 +147,7 @@ impl LinearCode {
     /// # Example
     ///
     /// ```
-    /// # use ldpc::classical::LinearCode;
+    /// # use ldpc::codes::LinearCode;
     /// use sparse_bin_mat::SparseBinMat;
     ///
     /// let matrix = SparseBinMat::new(
@@ -184,7 +184,7 @@ impl LinearCode {
     /// # Example
     ///
     /// ```
-    /// # use ldpc::classical::LinearCode;
+    /// # use ldpc::codes::LinearCode;
     /// use rand::thread_rng;
     ///
     /// let code = LinearCode::random_regular_code()
@@ -250,7 +250,7 @@ impl LinearCode {
     /// # Example
     ///
     /// ```
-    /// # use ldpc::classical::LinearCode;
+    /// # use ldpc::codes::LinearCode;
     /// use sparse_bin_mat::SparseBinMat;
     ///
     /// // The Hamming code
@@ -296,7 +296,7 @@ impl LinearCode {
     /// # Example
     ///
     /// ```
-    /// # use ldpc::classical::LinearCode;
+    /// # use ldpc::codes::LinearCode;
     /// use sparse_bin_mat::SparseBinMat;
     /// let parity_check_matrix = SparseBinMat::new(
     ///     7,
@@ -345,8 +345,8 @@ impl LinearCode {
     /// # Example
     ///
     /// ```
-    /// # use ldpc::classical::LinearCode;
-    /// use ldpc::classical::Edge;
+    /// # use ldpc::codes::LinearCode;
+    /// use ldpc::codes::linear_code::Edge;
     /// use sparse_bin_mat::{SparseBinMat, SparseBinVec};
     /// let parity_check_matrix = SparseBinMat::new(
     ///     4,
@@ -372,7 +372,7 @@ impl LinearCode {
     /// # Example
     ///
     /// ```
-    /// # use ldpc::classical::LinearCode;
+    /// # use ldpc::codes::LinearCode;
     /// use sparse_bin_mat::{SparseBinMat, SparseBinVec};
     ///
     /// let parity_check_matrix = SparseBinMat::new(
@@ -409,7 +409,7 @@ impl LinearCode {
     /// # Example
     ///
     /// ```
-    /// # use ldpc::classical::LinearCode;
+    /// # use ldpc::codes::LinearCode;
     /// use sparse_bin_mat::{SparseBinMat, SparseBinVec};
     ///
     /// let parity_check_matrix = SparseBinMat::new(
@@ -440,10 +440,10 @@ impl LinearCode {
     /// # Example
     ///
     /// ```
-    /// # use ldpc::classical::LinearCode;
+    /// # use ldpc::codes::LinearCode;
     /// use sparse_bin_mat::SparseBinMat;
     ///
-    /// use ldpc::noise_model::{BinarySymmetricChannel, Probability};
+    /// use ldpc::noise::{BinarySymmetricChannel, Probability};
     /// use rand::thread_rng;
     ///
     /// let parity_check_matrix = SparseBinMat::new(

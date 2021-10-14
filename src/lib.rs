@@ -10,6 +10,7 @@
 //!
 //! Finally, the [noise model module](noise_model) contains a generic trait for noise generation.
 
-pub mod classical;
-pub mod noise_model;
-pub mod quantum;
+pub mod codes;
+pub mod css;
+pub mod decoders;
+pub mod noise;
