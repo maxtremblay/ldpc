@@ -7,7 +7,6 @@ use sprs::{CsMat, TriMat};
 #[derive(Debug, Clone)]
 pub struct BpDecoder {
     parity_mat: SparseBinMat,
-    transposed_mat: SparseBinMat,
     likelyhoods: Vec<f64>,
     num_iterations: usize,
 }
@@ -41,7 +40,6 @@ impl BpDecoder {
             .collect();
         Self {
             parity_mat: parity_mat.clone(),
-            transposed_mat: parity_mat.transposed(),
             likelyhoods,
             num_iterations,
         }
