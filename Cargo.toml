@@ -1,8 +1,8 @@
 [package]
 name = "ldpc"
-version = "0.5.1"
+version = "0.6.0"
 authors = ["maxtremblay <matrem@protonmail.com>"]
-edition = "2018"
+edition = "2021"
 description = "A toolbox for classical and quantum LDPC codes."
 repository = "https://github.com/maxtremblay/ldpc"
 license = "MIT OR Apache-2.0"
