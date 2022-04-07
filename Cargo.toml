@@ -19,5 +19,5 @@ pauli = "0.3.0"
 rand = { version = "0.8.5", features = ["serde1"] }
 serde = { version = "1.0.136", features = ["derive"] }
 serde_json = "1.0.79"
-sparse-bin-mat = "0.6.2"
+sparse-bin-mat = "0.7.0"
 sprs = "0.11.0"

@@ -32,7 +32,7 @@ impl Logicals {
     fn to_generator_vec(code: &LinearCode) -> Vec<SparseBinVec> {
         code.generator_matrix()
             .rows()
-            .map(|row| row.to_owned())
+            .map(|row| row.to_vec())
             .collect()
     }
 

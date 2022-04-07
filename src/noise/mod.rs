@@ -18,6 +18,9 @@ pub use binary_symmetric_channel::BinarySymmetricChannel;
 mod depolarizing;
 pub use depolarizing::DepolarizingNoise;
 
+mod erasure;
+pub use erasure::ErasureChannel;
+
 pub trait NoiseModel {
     /// The type of the generated errors.
     type Error;
