@@ -16,6 +16,9 @@ impl<'c> CssErasureDecoder<'c> {
 
 impl<'c> ErasureDecoder for CssErasureDecoder<'c> {
     fn is_recoverable(&self, erasure: SparseBinSlice) -> bool {
+        if erasure.is_zero() {
+            return true;
+        };
         recover(
             self.code.x_stabs_binary(),
             self.code.x_logicals_binary(),
@@ -63,4 +66,13 @@ mod test {
         let erasure = SparseBinVec::new(9, vec![0, 6, 7]);
         assert!(decoder.is_recoverable(erasure.as_view()));
     }
+
+    #[test]
+    fn empty_erasure_in_shor_code() {
+        let code = CssCode::shor_code();
+        let decoder = CssErasureDecoder::new(&code);
+
+        let erasure = SparseBinVec::new(9, vec![]);
+        assert!(decoder.is_recoverable(erasure.as_view()));
+        }
 }
