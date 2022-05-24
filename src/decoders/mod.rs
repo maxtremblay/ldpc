@@ -23,5 +23,5 @@ pub trait SyndromeDecoder<Syndrome, Correction> {
 pub trait ClassicalSyndromeDecoder<'a>: SyndromeDecoder<SparseBinSlice<'a>, SparseBinVec> {}
 
 pub trait ErasureDecoder {
-    fn is_recoverable(&self, erasure: SparseBinSlice) -> bool;
+    fn recovery_probability(&self, erasure: SparseBinSlice) -> f64;
 }

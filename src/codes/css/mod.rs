@@ -80,6 +80,17 @@ impl CssCode {
         }
     }
 
+    /// Returns an instance of the toric code with given distance.
+    pub fn toric_code(distance: usize) -> Self {
+        let checks = (0..distance - 1)
+            .map(|c| vec![c, c + 1])
+            .chain(std::iter::once(vec![0, distance - 1]))
+            .collect();
+        let matrix = SparseBinMat::new(distance, checks);
+        let code = LinearCode::from_parity_check_matrix(matrix);
+        Self::hypergraph_product(&code, &code)
+    }
+
     /// Returns the hypergraph product of two linear codes.
     ///
     /// # Example
